@@ -183,7 +183,7 @@ class Application: NSObject {
         // while an app's only window looks phantom, and one un-phantom path forgot to remove it, so the app
         // showed two tiles forever. Nothing recorded either step, so it had to be inferred from the tiles.
         Logger.debug { "windowless + \(self.runningApplication.localizedName ?? "?") pid=\(self.pid) (no non-phantom window)" }
-        App.refreshOpenUiAfterExternalEvent([])
+        App.refreshOpenUiAfterExternalEvent()
         return window
     }
 
@@ -200,7 +200,7 @@ class Application: NSObject {
         guard let windowlessAppWindow = (Windows.list.first { $0.isWindowlessApp == true && $0.application.pid == self.pid }) else { return }
         Windows.removeWindows([windowlessAppWindow], false)
         Logger.debug { "windowless - \(self.runningApplication.localizedName ?? "?") pid=\(self.pid)" }
-        App.refreshOpenUiAfterExternalEvent([])
+        App.refreshOpenUiAfterExternalEvent()
     }
 
     func hideOrShow() {

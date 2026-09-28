@@ -810,7 +810,7 @@ class Windows {
         if addWindowlessWindowIfNeeded {
             windows.forEach { $0.application.addWindowlessWindowIfNeeded() }
         }
-        App.refreshOpenUiAfterExternalEvent([], windowRemoved: true)
+        App.refreshOpenUiAfterExternalEvent()
     }
 }
 

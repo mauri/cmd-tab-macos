@@ -181,7 +181,7 @@ enum WindowEventReducer {
             let changed = state.seedFocusOrderFromZOrder(widsTopFirst)
             guard !changed.isEmpty else { return [] }
             return [.log("zOrder seed reordered \(changed.count) never-focused window(s)"),
-                    .refreshUi(wids: changed, onlyWhileSwitcherOpen: true)]
+                    .refreshUi(onlyWhileSwitcherOpen: true)]
         case .attentionCommitted(let wid, let observed, let at):
             return attentionCommitted(&state, wid: wid, observed: observed, at: at)
         case .holdReleaseCheck(let wid, let attempt):
@@ -269,7 +269,7 @@ enum WindowEventReducer {
                     // no change, and the MRU bump below — the only other repaint here — is gated on the
                     // window's app being frontmost, which it is not while our panel holds the key window.
                     // So the tile kept the indicator until the panel was closed and reopened.
-                    effects.append(.refreshUi(wids: [], onlyWhileSwitcherOpen: true))
+                    effects.append(.refreshUi(onlyWhileSwitcherOpen: true))
                 }
                 // **An 815 is not a raise the user made.** It is emitted for every window of a Space being
                 // re-shown, for every window of an app being activated, and for a genuine Cmd+` alike, and
@@ -425,9 +425,9 @@ enum WindowEventReducer {
         if state.clearPhantomOnFocus(wid), let pid = state.window(wid)?.pid {
             effects.append(.removeWindowlessPlaceholder(pid: pid))
         }
-        let changed = state.noteFocus(wid, at: at ?? state.now)
-        effects.append(source == .attentionReducer ? .refreshUiImmediately(wids: changed)
-            : .refreshUi(wids: changed, onlyWhileSwitcherOpen: false))
+        _ = state.noteFocus(wid, at: at ?? state.now)
+        effects.append(source == .attentionReducer ? .refreshUiImmediately
+            : .refreshUi(onlyWhileSwitcherOpen: false))
         return effects
     }
 
@@ -704,7 +704,7 @@ enum WindowEventReducer {
             // switching a fullscreen window's tabs swaps which one holds the Space — regroup so the
             // newly-backgrounded tab stays shown instead of being flagged phantom
             effects.append(contentsOf: reconcile(&state))
-            effects.append(.refreshUi(wids: [wid], onlyWhileSwitcherOpen: true))
+            effects.append(.refreshUi(onlyWhileSwitcherOpen: true))
         }
         // A window that just went Space-less is a freshly-backgrounded tab: re-read its on-screen same-app
         // sibling's AXTabGroup NOW so that sibling claims it as an inactive tab, instead of leaving it
@@ -812,14 +812,7 @@ enum WindowEventReducer {
         return [.refreshSpacesTopologyAndSync,
                 .queryWindowServerState(wids: trackedWids),
                 .checkShortcutsForFocusedWindow,
-                .refreshUi(wids: widsOnVisibleSpaces(state), onlyWhileSwitcherOpen: false)]
-    }
-
-    /// The windows whose tiles a Space switch can change: the ones on a Space now on screen.
-    /// `visibleSpaces` is already current (the leading edge re-read it); membership is read before this pass's
-    /// own sync lands, which is fine since a Space switch does not move windows between Spaces.
-    private static func widsOnVisibleSpaces(_ state: TrackedWindowState) -> [CGWindowID] {
-        state.windows.filter { $0.spaceIds.contains { state.visibleSpaces.contains($0) } }.compactMap { $0.wid }
+                .refreshUi(onlyWhileSwitcherOpen: false)]
     }
 
     /// An app became frontmost (NSWorkspace — no WS equivalent). It names an app and nothing else: the 808s
@@ -1115,9 +1108,9 @@ enum WindowEventReducer {
             effects.append(.log("discovered new#\(wid) app=\(state.apps[window.pid]?.state.localizedName ?? "?") axTitles=\(tabTitles ?? []) isTabbed=\(w.map { state.isTabbed($0) } ?? false) siblings=\(state.groups.siblingWids(of: wid) ?? []) sp\(w?.spaceIds ?? []) pendingRemoval=\(wasRemovedFromSpaceWhileUntracked)\(adoptedAsInactiveTab ? " adoptedTab" : "")"))
         }
         if newlyTracked {
-            effects.append(.refreshUi(wids: [wid], onlyWhileSwitcherOpen: false))
+            effects.append(.refreshUi(onlyWhileSwitcherOpen: false))
         } else if tabStateChanged {
-            effects.append(.refreshUi(wids: [wid], onlyWhileSwitcherOpen: true))
+            effects.append(.refreshUi(onlyWhileSwitcherOpen: true))
         }
         return effects
     }
@@ -1174,7 +1167,7 @@ enum WindowEventReducer {
                 effects.append(.scheduleStandaloneTabCheck(wid: wid, siblingWid: siblingWid, attempt: 0))
             }
         }
-        if changed { effects.append(.refreshUi(wids: [wid], onlyWhileSwitcherOpen: true)) }
+        if changed { effects.append(.refreshUi(onlyWhileSwitcherOpen: true)) }
         return effects
     }
 
@@ -1215,7 +1208,6 @@ enum WindowEventReducer {
     /// frame and just refresh the layout for the geometry change.
     private static func windowServerStateRead(_ state: inout TrackedWindowState, _ snapshots: [WsWindowSnapshot]) -> [ReducerEffect] {
         var changedAny = false
-        var toCapture = [CGWindowID]()
         var focusRepairs = [ReducerEffect]()
         for snap in snapshots {
             guard let i = state.windowIndex(snap.wid) else { continue }
@@ -1279,12 +1271,11 @@ enum WindowEventReducer {
             }
             if changed {
                 changedAny = true
-                if snap.isVisible { toCapture.append(snap.wid) }
             }
         }
         guard changedAny else { return [] }
         var effects = focusRepairs + reconcile(&state)
-        effects.append(.refreshUi(wids: toCapture, onlyWhileSwitcherOpen: true))
+        effects.append(.refreshUi(onlyWhileSwitcherOpen: true))
         return effects
     }
 
@@ -1332,7 +1323,7 @@ enum WindowEventReducer {
         }
         guard changed else { return effects }
         effects.append(contentsOf: reconcile(&state))
-        effects.append(.refreshUi(wids: [], onlyWhileSwitcherOpen: true))
+        effects.append(.refreshUi(onlyWhileSwitcherOpen: true))
         return effects
     }
 
@@ -1382,7 +1373,7 @@ enum WindowEventReducer {
             }
         }
         if !changed.isEmpty {
-            effects.append(.refreshUi(wids: changed, onlyWhileSwitcherOpen: false))
+            effects.append(.refreshUi(onlyWhileSwitcherOpen: false))
         }
         return effects
     }
@@ -1416,7 +1407,7 @@ enum WindowEventReducer {
         state.held.remove(wid)
         // Claimed by the incoming tab ⇒ already a hidden background tab, nothing to redraw.
         guard !state.isTabbed(window) else { return [] }
-        return [.refreshUi(wids: [wid], onlyWhileSwitcherOpen: true)]
+        return [.refreshUi(onlyWhileSwitcherOpen: true)]
     }
 
     /// A group member that joined a Space is optimistically its group's new active tab (see
@@ -1439,7 +1430,7 @@ enum WindowEventReducer {
         case .some(true):
             var effects: [ReducerEffect] = [.log("dragOut confirmed #\(wid) left the group of #\(previousRepWid)")]
             effects.append(contentsOf: state.removeFromGroup(wid, reason: "dragOut").map { .log($0) })
-            effects.append(.refreshUi(wids: [wid, previousRepWid], onlyWhileSwitcherOpen: true))
+            effects.append(.refreshUi(onlyWhileSwitcherOpen: true))
             return effects
         case .some(false):
             return []  // same frame ⇒ a tab switch, as assumed
@@ -1474,7 +1465,7 @@ enum WindowEventReducer {
         effects.append(contentsOf: state.removeFromGroup(wid, reason: "standaloneSplit").map { .log($0) })
         if let i = state.windowIndex(wid) { state.windows[i].tabCount = 0 }
         effects.append(contentsOf: reconcile(&state))
-        effects.append(.refreshUi(wids: [wid, siblingWid], onlyWhileSwitcherOpen: true))
+        effects.append(.refreshUi(onlyWhileSwitcherOpen: true))
         return effects
     }
 

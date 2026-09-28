@@ -1219,7 +1219,7 @@ class Applications {
             pendingAxEnds = pendingAxEnds.filter { $0.value.pid != pid }
             Windows.forgetSurfaceRetirements(pid)
         }
-        App.refreshOpenUiAfterExternalEvent([])
+        App.refreshOpenUiAfterExternalEvent()
     }
 
     static func refreshBadgesAsync() {

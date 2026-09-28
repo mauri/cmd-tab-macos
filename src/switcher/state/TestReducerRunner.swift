@@ -58,7 +58,8 @@ final class TestReducerRunner {
     /// every `.refreshUi` the reduction asked for, in order. Recorded because it is the reducer's ONLY way
     /// to repaint a switcher that is ALREADY OPEN, so a state flip that emits none is a defect the user
     /// sees: the tile keeps the stale value until the panel is closed and reopened (the un-minimize case).
-    private(set) var refreshes = [(wids: [CGWindowID], onlyWhileSwitcherOpen: Bool)]()
+    struct Refresh { let onlyWhileSwitcherOpen: Bool }
+    private(set) var refreshes = [Refresh]()
     private var stepIndex = 0
     /// stands in for the shell's `systemUptime` stamp (see `.input`)
     private var clock: TimeInterval = 1
@@ -143,10 +144,10 @@ final class TestReducerRunner {
             pendingRequests.append(effect)
         case .log(let line):
             trace.append("[\(stepIndex)] \(line)")
-        case .refreshUi(let wids, let onlyWhileSwitcherOpen):
-            refreshes.append((wids, onlyWhileSwitcherOpen))
-        case .refreshUiImmediately(let wids):
-            refreshes.append((wids, false))
+        case .refreshUi(let onlyWhileSwitcherOpen):
+            refreshes.append(Refresh(onlyWhileSwitcherOpen: onlyWhileSwitcherOpen))
+        case .refreshUiImmediately:
+            refreshes.append(Refresh(onlyWhileSwitcherOpen: false))
         case .applyFocus, .updateScreenId, .removeWindowlessPlaceholder,
              .addWindowlessPlaceholder, .readFocusedWindowOnActivation,
              .checkShortcutsForFocusedWindow, .retireSurface:

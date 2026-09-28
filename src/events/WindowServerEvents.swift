@@ -291,7 +291,7 @@ class WindowServerEvents {
     private static func applicationVisibilityChanged(_ pid: pid_t, hidden: Bool) {
         guard let app = Applications.list.first(where: { $0.pid == pid }) else { return }
         app.isHidden = hidden
-        App.refreshOpenUiAfterExternalEvent(Windows.list.filter { $0.application.pid == pid })
+        App.refreshOpenUiAfterExternalEvent()
     }
 
     private static func requestNotifications() {

@@ -195,7 +195,7 @@ final class WindowEventReducerFocusTests: XCTestCase {
         let effects = WindowEventReducer.reduce(&s, .attentionCommitted(wid: Self.reaperMainWid,
                                                                         observed: Self.reaperMainWid, at: 100))
         XCTAssertEqual(s.mruFrontWid, Self.reaperMainWid)
-        XCTAssertTrue(effects.contains(.refreshUiImmediately(wids: [Self.reaperMainWid, Self.finderWid])))
+        XCTAssertTrue(effects.contains(.refreshUiImmediately))
     }
 
     /// A commit naming a window nobody tracks is ignored rather than fabricating one.

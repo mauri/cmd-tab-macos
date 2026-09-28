@@ -976,13 +976,12 @@ enum ReducerEffect: Equatable {
     /// the window whose AXTabGroup named the missing titles — the scan needs it to reject a candidate that is
     /// plainly another window's tab (`BruteForceWindowMatch.isPlausibleInactiveTab`).
     case discoverInactiveTabs(pid: pid_t, untrackedTitles: [String], requesterWid: CGWindowID)
-    /// set `application.focusedWindow`, re-check shortcut disabling, capture the frontmost in background —
-    /// the trio every focus-bump site fires
+    /// set `application.focusedWindow` and re-check shortcut disabling — the pair every focus-bump site fires
     case applyFocus(CGWindowID)
-    /// `App.refreshOpenUiAfterExternalEvent(wids)`; some call sites fire only while the switcher is open
-    case refreshUi(wids: [CGWindowID], onlyWhileSwitcherOpen: Bool)
+    /// `App.refreshOpenUiAfterExternalEvent()`; some call sites fire only while the switcher is open
+    case refreshUi(onlyWhileSwitcherOpen: Bool)
     /// Reconcile attention's default selection before a modifier release can commit it.
-    case refreshUiImmediately(wids: [CGWindowID])
+    case refreshUiImmediately
     /// remove the window from the live model (`Windows.removeWindows`, view/scheduler/subscription cleanup)
     case removeWindow(CGWindowID)
     case reconcileAxElementEnd(CGWindowID)

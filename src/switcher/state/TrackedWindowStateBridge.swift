@@ -189,12 +189,12 @@ class TrackedWindowStateBridge {
                     w.application.focusedWindow = w
                     App.checkIfShortcutsShouldBeDisabled(w, nil)
                 }
-            case .refreshUi(let wids, let onlyWhileSwitcherOpen):
+            case .refreshUi(let onlyWhileSwitcherOpen):
                 if !onlyWhileSwitcherOpen || SwitcherSession.isActive {
-                    App.refreshOpenUiAfterExternalEvent(wids.compactMap { Windows.byWindowId[$0] })
+                    App.refreshOpenUiAfterExternalEvent()
                 }
-            case .refreshUiImmediately(let wids):
-                App.refreshOpenUiAfterExternalEvent(wids.compactMap { Windows.byWindowId[$0] }, immediately: true)
+            case .refreshUiImmediately:
+                App.refreshOpenUiAfterExternalEvent(immediately: true)
             case .removeWindow(let wid):
                 if let w = Windows.byWindowId[wid] { Windows.removeWindows([w], true) }
             case .reconcileAxElementEnd(let wid):

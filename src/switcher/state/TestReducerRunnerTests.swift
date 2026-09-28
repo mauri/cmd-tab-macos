@@ -976,7 +976,7 @@ final class TestReducerRunnerTests: XCTestCase {
             window(102, spaceIds: [3], lastFocusOrder: 2)]))
         harness.run([.input(.zOrderRead(widsTopFirst: [102, 100, 101]))])
         XCTAssertEqual(mru(harness), [102, 100, 101])
-        XCTAssertEqual(harness.refreshes.flatMap { $0.wids }.sorted(), [100, 101, 102])
+        XCTAssertEqual(harness.refreshes.count, 1)
         XCTAssertTrue(harness.trace.contains { $0.contains("zOrder seed reordered") }, "\(harness.trace)")
     }
 
@@ -989,7 +989,7 @@ final class TestReducerRunnerTests: XCTestCase {
             window(102, spaceIds: [3], lastFocusOrder: 2)]))
         harness.run([.input(.zOrderRead(widsTopFirst: [100, 101, 102]))])
         XCTAssertEqual(mru(harness), [100, 101, 102])
-        XCTAssertEqual(harness.refreshes.flatMap { $0.wids }, [])
+        XCTAssertEqual(harness.refreshes.count, 0)
         XCTAssertFalse(harness.trace.contains { $0.contains("zOrder seed reordered") })
     }
 

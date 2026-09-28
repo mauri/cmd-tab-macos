@@ -309,8 +309,7 @@ class App: AppCenterApplication {
         CGWarpMouseCursorPosition(point)
     }
 
-    static func refreshOpenUiAfterExternalEvent(_ changedWindows: [Window], windowRemoved: Bool = false,
-                                              immediately: Bool = false) {
+    static func refreshOpenUiAfterExternalEvent(immediately: Bool = false) {
         let repaint = {
             guard SwitcherSession.isActive else { return }
             if !Windows.updatesBeforeShowing() { hideUi(); return }
