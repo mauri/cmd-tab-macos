@@ -260,23 +260,6 @@ enum SecondaryWindows {
     static var canBecomeKey = true
 }
 
-extension NSTextView {
-    /// A read-only, selectable text view sized to one settings column, for the Markdown-rendered
-    /// panes. Text checking is off: these are static documents, so the checker would only ever
-    /// underline product names.
-    static func makeReadOnlyMarkdownView(_ columnWidth: CGFloat) -> NSTextView {
-        let textView = NSTextView()
-        textView.textContainer!.widthTracksTextView = true
-        textView.translatesAutoresizingMaskIntoConstraints = false
-        textView.drawsBackground = false
-        textView.isSelectable = true
-        textView.isEditable = false
-        textView.enabledTextCheckingTypes = 0
-        textView.frame.size.width = columnWidth
-        return textView
-    }
-}
-
 extension NSPanel {
     /// The chrome of AltTab's floating panels.
     /// `.canJoinAllSpaces` matters because triggering AltTab before or during a Space transition
@@ -290,26 +273,6 @@ extension NSPanel {
         backgroundColor = .clear
         collectionBehavior = .canJoinAllSpaces
         setAccessibilitySubrole(.unknown)
-    }
-}
-
-extension NSSearchField {
-    /// The settings sidebar's search field wants every keystroke rather than a debounced one. `controlSize` tracks the OS: macOS 26 draws search
-    /// fields as a taller pill, and 13 through 15 as the `.large` bezel.
-    func applySearchStyle() {
-        placeholderString = NSLocalizedString("Search", comment: "")
-        sendsSearchStringImmediately = true
-        sendsWholeSearchString = true
-        bezelStyle = .roundedBezel
-        #if compiler(>=6.2)
-        if #available(macOS 26.0, *) {
-            controlSize = .extraLarge
-            return
-        }
-        #endif
-        if #available(macOS 13.0, *) {
-            controlSize = .large
-        }
     }
 }
 

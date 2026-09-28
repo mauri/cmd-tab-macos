@@ -23,14 +23,10 @@ class Preferences {
         "startAtLogin": "true",
         "menubarIcon": MenubarIconPreference.outlined.indexAsString,
         "menubarIconShown": "true",
-        "language": LanguagePreference.systemDefault.indexAsString,
         "exceptions": defaultExceptions(),
         "settingsWindowShownOnFirstLaunch": "false",
     ]
 
-    static let staticShortcutKeys = [
-        "focusWindowShortcut", "previousWindowShortcut", "cancelShortcut",
-    ]
     static let emptyShortcut = Shortcut(code: .none, modifierFlags: [], characters: nil, charactersIgnoringModifiers: nil)
     private static let shortcutStorageStringField = "string"
     private static let shortcutStorageDataField = "secureData"
@@ -59,7 +55,6 @@ class Preferences {
     static var shortcutStyle: ShortcutStylePreference { CachedUserDefaults.macroPref("shortcutStyle", ShortcutStylePreference.allCases) }
     static var menubarIcon: MenubarIconPreference { CachedUserDefaults.macroPref("menubarIcon", MenubarIconPreference.allCases) }
     static var menubarIconShown: Bool { CachedUserDefaults.bool("menubarIconShown") }
-    static var language: LanguagePreference { CachedUserDefaults.macroPref("language", LanguagePreference.allCases) }
 
     /// One hold shortcut. Keys keep the indexed naming (`holdShortcut`, `nextWindowShortcut`) that the
     /// shortcut registry and the keyboard code share.
@@ -67,14 +62,7 @@ class Preferences {
     static let maxShortcutCount = 1
 
     static func initialize() {
-        PreferencesMigrations.removeCorruptedPreferences()
-        PreferencesMigrations.migratePreferences()
         registerDefaults()
-    }
-
-    static func resetAll() {
-        UserDefaults.standard.removePersistentDomain(forName: App.bundleIdentifier)
-        invalidateAllCache()
     }
 
     static func registerDefaults() {
@@ -131,35 +119,14 @@ class Preferences {
         write(key, notify) { UserDefaults.standard.removeObject(forKey: key) }
     }
 
-    /// Every mutation of a preference goes through here: the store write, then the two caches that
-    /// shadow it (`CachedUserDefaults` per key, `cachedAll` for the whole domain), then the observers.
-    /// Skipping either invalidation leaves readers on a stale value.
+    /// Every mutation of a preference goes through here: the store write, then the cache that shadows it
+    /// (`CachedUserDefaults`), then the observers. Skipping the invalidation leaves readers on a stale value.
     private static func write(_ key: String, _ notify: Bool, _ mutate: () -> Void) {
         mutate()
         CachedUserDefaults.removeFromCache(key)
-        invalidateAllCache()
         if notify {
             PreferencesEvents.preferenceChanged(key)
         }
-    }
-
-    static let ownedKeys: Set<String> = Set(defaultValues.keys)
-
-    /// `persistentDomain(forName:)` rebuilds a full snapshot dictionary on every call. Cache the filtered
-    /// snapshot; the only paths that mutate the domain (`set`, `setShortcut`, `remove`, `resetAll`) clear
-    /// `cachedAll` below.
-    private static var cachedAll: [String: Any]?
-
-    static var all: [String: Any] {
-        if let cachedAll { return cachedAll }
-        let domain = UserDefaults.standard.persistentDomain(forName: App.bundleIdentifier) ?? [:]
-        let filtered = domain.filter { ownedKeys.contains($0.key) }
-        cachedAll = filtered
-        return filtered
-    }
-
-    static func invalidateAllCache() {
-        cachedAll = nil
     }
 
     /// key-above-tab is ` on US keyboard, but can be different on other keyboards

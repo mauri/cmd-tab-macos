@@ -1,149 +1,13 @@
 import Cocoa
 import ShortcutRecorder
 
-enum LabelPosition {
-    case leftWithSeparator
-    case right
-}
-
 typealias EventClosure = (NSEvent, NSView) -> Void
 
-class MouseHoverView: NSView {
-    var onMouseEntered: EventClosure?
-    var onMouseExited: EventClosure?
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        for trackingArea in trackingAreas {
-            removeTrackingArea(trackingArea)
-        }
-        let newTrackingArea = NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways], owner: self, userInfo: nil)
-        addTrackingArea(newTrackingArea)
-    }
-
-    override func mouseEntered(with event: NSEvent) {
-        onMouseEntered?(event, self)
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        onMouseExited?(event, self)
-    }
-}
-
-class ClickHoverImageView: MouseHoverView {
-    var infoCircle: NSView!
-    var onClick: EventClosure?
-    var searchableStrings = [String]()
-
-    init(infoCircle: NSView) {
-        super.init(frame: .zero)
-        translatesAutoresizingMaskIntoConstraints = false
-        self.infoCircle = infoCircle
-        addSubview(infoCircle)
-        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
-        addGestureRecognizer(clickGesture)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("Class only supports programmatic initialization")
-    }
-
-    @objc private func handleClick(_ sender: NSClickGestureRecognizer) {
-        if let event = sender.view?.window?.currentEvent {
-            onClick?(event, self)
-        }
-    }
-
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
-        return true
-    }
-}
-
 class LabelAndControl: NSObject {
-
-    static func makeImageRadioButtons(_ rawName: String,
-                                      _ macroPreferences: [ImageMacroPreference],
-                                      extraAction: ActionClosure? = nil,
-                                      buttonSpacing: CGFloat = 15) -> NSStackView {
-        SettingsSearchIndex.registerStrings(macroPreferences.map { $0.localizedString })
-        let buttonViews = macroPreferences.enumerated().map { (index, preference) -> ImageTextButtonView in
-            let state: NSControl.StateValue = CachedUserDefaults.intFromMacroPref(rawName, macroPreferences) == index ? .on : .off
-            let buttonView = ImageTextButtonView(title: preference.localizedString, rawName: rawName, image: preference.image, state: state)
-            buttonView.onClick = { [weak buttonView] control in
-                guard let buttonView else { return }
-                let siblings = (buttonView.superview as? NSStackView)?.arrangedSubviews.compactMap { $0 as? ImageTextButtonView } ?? []
-                siblings.enumerated().forEach { (i, otherButtonView) in
-                    if otherButtonView != buttonView {
-                        otherButtonView.state = i == index ? .on : .off
-                    }
-                }
-                controlWasChanged(buttonView.button, String(index))
-                extraAction?(buttonView.button)
-            }
-            return buttonView
-        }
-        let view = NSStackView(views: buttonViews)
-        view.orientation = .horizontal
-        view.distribution = .fillEqually
-        view.spacing = buttonSpacing
-        view.alignment = .centerY
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        buttonViews.forEach {
-            $0.setContentHuggingPriority(.defaultLow, for: .horizontal)
-            $0.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        }
-        return view
-    }
-
-    static func makeLabelWithRecorder(_ labelText: String, _ rawName: String, _ shortcut: Shortcut?, _ clearable: Bool = true, labelPosition: LabelPosition = .leftWithSeparator) -> [NSView] {
-        let input = CustomRecorderControl(shortcut, clearable, rawName)
-        let views = makeLabelWithProvidedControl(labelText, rawName, input, labelPosition: labelPosition, extraAction: { _ in ControlsTab.shortcutChangedCallback(input) })
-        ControlsTab.shortcutChangedCallback(input)
-        ControlsTab.shortcutControls[rawName] = (input, labelText)
-        return views
-    }
-
-    static func makeLabelWithCheckbox(_ labelText: String, _ rawName: String, extraAction: ActionClosure? = nil, labelPosition: LabelPosition = .leftWithSeparator) -> [NSView] {
-        let checkbox = NSButton(checkboxWithTitle: labelPosition == .right ? labelText : " ", target: nil, action: nil)
-        checkbox.translatesAutoresizingMaskIntoConstraints = false
-        checkbox.state = CachedUserDefaults.bool(rawName) ? .on : .off
-        let views = makeLabelWithProvidedControl(labelText, rawName, checkbox, labelPosition: labelPosition, extraAction: extraAction)
-        return views
-    }
-
     static func makeSwitch(_ rawName: String, extraAction: ActionClosure? = nil) -> Switch {
         let button = Switch(CachedUserDefaults.bool(rawName))
         _ = setupControl(button, rawName, extraAction: extraAction)
         return button
-    }
-
-    static func makeInfoButton(size: CGFloat = 16,
-                               searchableTooltipTexts: [String] = [],
-                               onClick: EventClosure? = nil,
-                               onMouseEntered: EventClosure? = nil,
-                               onMouseExited: EventClosure? = nil) -> ClickHoverImageView {
-        let imageView = TileFontIconView(symbol: .circledInfo, size: size, color: .labelColor)
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        let view = ClickHoverImageView(infoCircle: imageView)
-        view.searchableStrings = Array(Set(searchableTooltipTexts.map {
-            $0.trimmingCharacters(in: .whitespacesAndNewlines)
-        }.filter {
-            !$0.isEmpty
-        }))
-        SettingsSearchIndex.registerStrings(view.searchableStrings)
-        SettingsSearchIndex.registerTarget(SettingsWindow.highlightTarget(view))
-        view.onClick = onClick
-        view.onMouseEntered = onMouseEntered
-        view.onMouseExited = onMouseExited
-        NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: view.topAnchor),
-            imageView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
-        return view
     }
 
     static func dropdown_(_ rawName: String, _ macroPreferences: [MacroPreference]) -> NSPopUpButton {
@@ -157,106 +21,7 @@ class LabelAndControl: NSObject {
 
     static func makeDropdown(_ rawName: String, _ macroPreferences: [MacroPreference], extraAction: ActionClosure? = nil) -> NSPopUpButton {
         let dropdown = dropdown_(rawName, macroPreferences)
-        SettingsSearchIndex.registerStrings(macroPreferences.map { $0.localizedString })
-        SettingsSearchIndex.registerTarget(SettingsWindow.highlightTarget(dropdown))
         return setupControl(dropdown, rawName, extraAction: extraAction) as! NSPopUpButton
-    }
-
-    static func makeRadioButtons(_ rawName: String, _ macroPreferences: [MacroPreference], extraAction: ActionClosure? = nil) -> [NSButton] {
-        var i = 0
-        return macroPreferences.map {
-            let button = NSButton(radioButtonWithTitle: $0.localizedString, target: nil, action: nil)
-            button.translatesAutoresizingMaskIntoConstraints = false
-            button.state = CachedUserDefaults.intFromMacroPref(rawName, macroPreferences) == i ? .on : .off
-            SettingsSearchIndex.registerString($0.localizedString)
-            _ = setupControl(button, rawName, String(i), extraAction: extraAction)
-            i += 1
-            return button
-        }
-    }
-
-    static func makeSegmentedControl(_ rawName: String, _ macroPreferences: [MacroPreference], segmentWidth: CGFloat = -1, extraAction: ActionClosure? = nil) -> NSSegmentedControl {
-        let button = NSSegmentedControl(labels: macroPreferences.map {
-            $0.localizedString
-        }, trackingMode: .selectOne, target: nil, action: nil)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        SettingsSearchIndex.registerStrings(macroPreferences.map { $0.localizedString })
-        SettingsSearchIndex.registerTarget(SettingsWindow.highlightTarget(button))
-        for (i, preference) in macroPreferences.enumerated() {
-            if segmentWidth > 0 {
-                button.setWidth(segmentWidth, forSegment: i)
-            }
-            var hasImage = false
-            if let preference = preference as? SfSymbolMacroPreference {
-                button.setImage(NSImage.fromSymbol(preference.symbol, pointSize: 13), forSegment: i)
-                hasImage = true
-            }
-            let selectedSegment = CachedUserDefaults.intFromMacroPref(rawName, macroPreferences)
-            if selectedSegment >= 0 && selectedSegment < macroPreferences.count {
-                button.selectedSegment = selectedSegment
-            }
-            // When the segment is too narrow to fit its label, AppKit truncates with `…` and gives
-            // no other affordance to read the full text. Set a tooltip so hovering reveals it.
-            // Skip the tooltip when the label fits cleanly — hovering visible text and seeing it
-            // again as a tooltip is annoying noise. The width math is approximate (AppKit doesn't
-            // expose the exact text-drawing rect inside a segment): we subtract the typical
-            // left+right segment padding plus the symbol image and its gap.
-            if segmentWidth > 0 {
-                let label = preference.localizedString
-                let textWidth = (label as NSString).size(withAttributes: [.font: button.font ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)]).width
-                let imageWidth: CGFloat = hasImage ? 16 + 4 : 0
-                let availableTextWidth = segmentWidth - 12 - imageWidth
-                if textWidth > availableTextWidth {
-                    button.setToolTip(label, forSegment: i)
-                }
-            }
-            _ = setupControl(button, rawName, String(i), extraAction: extraAction)
-        }
-        if segmentWidth > 0 {
-            button.widthAnchor.constraint(equalToConstant: segmentWidth * CGFloat(macroPreferences.count)).isActive = true
-        }
-        return button
-    }
-
-    static func makeLabelWithSlider(_ labelText: String, _ rawName: String, _ minValue: Double, _ maxValue: Double,
-                                    _ numberOfTickMarks: Int = 0, _ allowsTickMarkValuesOnly: Bool = false,
-                                    _ unitText: String = "", width: CGFloat = 200, extraAction: ActionClosure? = nil) -> [NSView] {
-        let value = CachedUserDefaults.int(rawName)
-        let formatter = MeasurementFormatter()
-        formatter.numberFormatter = NumberFormatter()
-        let suffixText = formatter.string(from: Measurement(value: Double(value), unit: Unit(symbol: unitText)))
-        let slider = NSSlider()
-        slider.minValue = minValue
-        slider.maxValue = maxValue
-        slider.stringValue = String(value)
-        slider.isContinuous = true
-        if numberOfTickMarks > 0 {
-            slider.numberOfTickMarks = numberOfTickMarks
-        }
-        slider.allowsTickMarkValuesOnly = allowsTickMarkValuesOnly
-        slider.translatesAutoresizingMaskIntoConstraints = false
-        slider.addOrUpdateConstraint(slider.widthAnchor, width)
-        return makeLabelWithProvidedControl(labelText, rawName, slider, suffixText, extraAction: extraAction)
-    }
-
-    static func makeLabelWithProvidedControl(_ labelText: String, _ rawName: String, _ control: NSControl,
-                                             _ suffixText: String? = nil, labelPosition: LabelPosition = .leftWithSeparator,
-                                             extraAction: ActionClosure? = nil) -> [NSView] {
-        _ = setupControl(control, rawName, extraAction: extraAction)
-        if labelPosition == .right && control is NSButton {
-            return [control]
-        }
-        let label = makeLabel(labelText)
-        if labelPosition == .right {
-            if let suffixText {
-                return [control, label, makeSuffix(rawName, suffixText)]
-            }
-            return [control, label]
-        }
-        if let suffixText {
-            return [label, control, makeSuffix(rawName, suffixText)]
-        }
-        return [label, control]
     }
 
     static func setupControl(_ control: NSControl, _ rawName: String, _ controlId: String? = nil, extraAction: ActionClosure? = nil) -> NSControl {
@@ -282,9 +47,6 @@ class LabelAndControl: NSObject {
             if let oldValue = UserDefaults.standard.string(forKey: senderControl.identifier!.rawValue), newValue == oldValue {
                 return
             }
-            if senderControl is NSSlider {
-                updateSuffixWithValue(senderControl as! NSSlider, newValue)
-            }
             Preferences.set(senderControl.identifier!.rawValue, newValue)
         }
     }
@@ -297,18 +59,7 @@ class LabelAndControl: NSObject {
         if shouldFit {
             label.fit()
         }
-        SettingsSearchIndex.registerString(labelText)
-        SettingsSearchIndex.registerTarget(SettingsSearchHighlight.highlightTarget(label))
         return label
-    }
-
-    private static func makeSuffix(_ controlName: String, _ text: String) -> NSTextField {
-        let suffix = NSTextField(labelWithString: text)
-        suffix.textColor = .gray
-        suffix.identifier = NSUserInterfaceItemIdentifier(controlName + ControlIdentifierDiscriminator.SUFFIX.rawValue)
-        SettingsSearchIndex.registerString(text)
-        SettingsSearchIndex.registerTarget(SettingsSearchHighlight.highlightTarget(suffix))
-        return suffix
     }
 
     static func getControlValue(_ control: NSControl, _ controlId: String?) -> String? {
@@ -328,19 +79,4 @@ class LabelAndControl: NSObject {
             return control.stringValue
         }
     }
-
-    private static func updateSuffixWithValue(_ control: NSControl, _ value: String) {
-        let suffixIdentifierPredicate = { (view: NSView) -> Bool in
-            view.identifier?.rawValue == control.identifier!.rawValue + ControlIdentifierDiscriminator.SUFFIX.rawValue
-        }
-        if let suffixView: NSTextField = control.superview?.subviews.first(where: suffixIdentifierPredicate) as? NSTextField {
-            let regex = try! NSRegularExpression(pattern: "^[0-9]+") // first decimal
-            let range = NSMakeRange(0, suffixView.stringValue.count)
-            suffixView.stringValue = regex.stringByReplacingMatches(in: suffixView.stringValue, range: range, withTemplate: value)
-        }
-    }
-}
-
-enum ControlIdentifierDiscriminator: String {
-    case SUFFIX = "_suffix"
 }

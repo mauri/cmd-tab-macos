@@ -38,7 +38,7 @@ class AboutWindow: NSPanel {
     override var canBecomeKey: Bool { SecondaryWindows.canBecomeKey }
 
     convenience init() {
-        self.init(contentRect: NSRect(x: 0, y: 0, width: 380, height: 450), styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
+        self.init(contentRect: NSRect(x: 0, y: 0, width: 380, height: 220), styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
         setupWindow()
         setupView()
         setFrameAutosaveNameSafely("AboutWindow2")
@@ -65,11 +65,7 @@ class AboutWindow: NSPanel {
         stack.spacing = 30
         stack.translatesAutoresizingMaskIntoConstraints = false
         let aboutView = AboutTab.makeContentView(false, true)
-        let columnWidth = frame.width - 2 * Self.contentPadding
-        let acknowledgmentsView = AcknowledgmentsTab.makeContentView(columnWidth: columnWidth, shouldFit: false, verticallyStacked: true)
-        acknowledgmentsView.translatesAutoresizingMaskIntoConstraints = false
         stack.addArrangedSubview(aboutView)
-        stack.addArrangedSubview(acknowledgmentsView)
         documentView.addSubview(stack)
         contentView = scrollView
         NSLayoutConstraint.activate([
@@ -80,8 +76,6 @@ class AboutWindow: NSPanel {
             documentView.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor),
             aboutView.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
             aboutView.trailingAnchor.constraint(equalTo: stack.trailingAnchor),
-            acknowledgmentsView.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
-            acknowledgmentsView.trailingAnchor.constraint(equalTo: stack.trailingAnchor),
         ])
     }
 

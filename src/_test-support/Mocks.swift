@@ -1,55 +1,6 @@
 import Cocoa
 import ShortcutRecorder
 
-// Test-target reimplementation of `SettingsSearchIndex`'s inline-registration API. The production
-// type lives in the app target but its `sheetSearchableStrings(forButtonAction:)` references the
-// sheet classes + AppearanceTab/ControlsTab selectors, which would drag the whole settings window
-// into the test target. The indexing surface that the row/label widgets actually call
-// (`registerString` / `registerStrings` / `registerTarget`) and that the editor tests drive
-// (`indexed { ... }`) is small and self-contained, so we mirror just that here. Keep in sync with
-// the production version's behavior for these five members.
-enum SettingsSearchIndex {
-    static var current: Builder?
-
-    final class Builder {
-        var strings: [String] = []
-        var targets: [SettingsSearchHighlightTarget] = []
-    }
-
-    static func indexed<T>(_ build: () -> T) -> (result: T, builder: Builder) {
-        let previous = current
-        let builder = Builder()
-        current = builder
-        defer { current = previous }
-        let result = build()
-        return (result, builder)
-    }
-
-    static func registerString(_ s: String?) {
-        guard let current, let s else { return }
-        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty { current.strings.append(trimmed) }
-    }
-
-    static func registerStrings(_ strings: [String]) {
-        guard let current else { return }
-        for s in strings {
-            let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !t.isEmpty { current.strings.append(t) }
-        }
-    }
-
-    static func registerTarget(_ target: SettingsSearchHighlightTarget?) {
-        guard let target, let current else { return }
-        current.targets.append(target)
-    }
-}
-
-class Appearance {
-    static var searchMatchHighlightColor: NSColor = .yellow
-    static var searchMatchForegroundColor: NSColor = .black
-}
-
 // Minimal stub so `TableGroupView.swift` / `SidebarList.swift` compile in the test target without
 // dragging in the full `SettingsWindow`. Tests never instantiate it — they only need the symbol.
 enum SettingsWindow {
@@ -60,8 +11,7 @@ enum SettingsWindow {
 // uses it in its row-builder signatures, so mirror the typealias here.
 typealias EventClosure = (NSEvent, NSView) -> Void
 
-// Helpers from `HelperExtensions.swift` (app target only) that `TableGroupView` /
-// `SettingsSearchHighlight` reference. The test never exercises their visual behavior — it only
+// Helpers from `HelperExtensions.swift` (app target only) that `TableGroupView` references. The test never exercises their visual behavior — it only
 // needs the symbols to resolve — so these are functional-but-minimal stand-ins.
 func noAnimation<T: CALayer>(_ make: () -> T) -> T {
     return make()
@@ -229,5 +179,34 @@ enum TestDefaults {
         UserDefaults.standard.removeSuite(named: suiteName)
         let plist = NSHomeDirectory() + "/Library/Preferences/\(suiteName).plist"
         try? FileManager.default.removeItem(atPath: plist)
+    }
+}
+
+// Stand-ins for the exceptions model in `Preferences.swift` / `MacroPreferences.swift`, which the test
+// target doesn't compile. Same fields and String rawValues as production.
+enum ExceptionHidePreference: String, Codable, CaseIterable {
+    case none = "0"
+    case always = "1"
+    case whenNoOpenWindow = "2"
+    case windowTitleContains = "3"
+}
+
+enum ExceptionIgnorePreference: String, Codable, CaseIterable {
+    case none = "0"
+    case always = "1"
+    case whenFullscreen = "2"
+}
+
+struct ExceptionEntry: Codable, Equatable {
+    var bundleIdentifier: String
+    var hide: ExceptionHidePreference
+    var ignore: ExceptionIgnorePreference
+    var windowTitleContains: [String]?
+
+    init(bundleIdentifier: String, hide: ExceptionHidePreference, ignore: ExceptionIgnorePreference, windowTitleContains: [String]? = nil) {
+        self.bundleIdentifier = bundleIdentifier
+        self.hide = hide
+        self.ignore = ignore
+        self.windowTitleContains = windowTitleContains
     }
 }

@@ -16,7 +16,7 @@ import Cocoa
 ///
 /// Drop-in compatible with the subset of `NSTextField` properties our row-label sites use:
 /// `stringValue`, `attributedStringValue`, `textColor`, `font`, `alignment`, `lineBreakMode`,
-/// `maximumNumberOfLines`. Search-highlight is built in via `applyHighlight` / `clearHighlight`.
+/// `maximumNumberOfLines`.
 final class LightLabel: NSView {
     /// The plain-text content. Setting this clears any explicit `attributedStringValue` override.
     var stringValue: String = "" {
@@ -65,15 +65,9 @@ final class LightLabel: NSView {
         }
     }
 
-    /// Optional foreground tint applied to `highlightRanges` (typically the search-match color
-    /// rendered on top of the yellow rounded background). When `highlightRanges` is empty, this
-    /// has no effect.
-    var highlightForegroundColor: NSColor = .labelColor
-    private(set) var highlightRanges: [NSRange] = []
-
     // Internal — the renderer reaches through these. We keep `stringValueBacking` separate from
     // `stringValue`'s storage so an attributedStringValue assignment can still expose the right
-    // string to `searchableStrings`-style consumers without losing the original setter semantics.
+    // string without losing the original setter semantics.
     private var stringValueBacking: String { get { stringValue } set { stringValueRaw = newValue } }
     private var stringValueRaw: String {
         get { return stringValue }
@@ -101,21 +95,6 @@ final class LightLabel: NSView {
     override var isOpaque: Bool { false }
     override func isAccessibilityElement() -> Bool { true }
 
-    /// Mark the given character ranges to render with `highlightForegroundColor` (typically the
-    /// search-match color). Triggers a redraw. The yellow rounded background is applied
-    /// separately via `SettingsWindow.applyRoundedHighlights`.
-    func applyHighlight(ranges: [NSRange], foregroundColor: NSColor) {
-        highlightRanges = ranges
-        highlightForegroundColor = foregroundColor
-        needsDisplay = true
-    }
-
-    func clearHighlight() {
-        guard !highlightRanges.isEmpty else { return }
-        highlightRanges = []
-        needsDisplay = true
-    }
-
     private func invalidateContentCache() {
         cachedIntrinsicSize = nil
         invalidateIntrinsicContentSize()
@@ -131,24 +110,13 @@ final class LightLabel: NSView {
 
     /// The attributed string actually rendered. Built from `attributedStringValue` if set,
     /// otherwise from `stringValue` + the textColor/font/alignment/lineBreakMode properties.
-    /// Any `highlightRanges` are layered on top of the base.
     private func renderedAttributedString() -> NSAttributedString {
-        let base: NSAttributedString
-        if let attributedOverride {
-            base = attributedOverride
-        } else {
-            base = NSAttributedString(string: stringValue, attributes: [
-                .font: font,
-                .foregroundColor: textColor,
-                .paragraphStyle: paragraphStyle(),
-            ])
-        }
-        guard !highlightRanges.isEmpty else { return base }
-        let mutable = NSMutableAttributedString(attributedString: base)
-        for range in highlightRanges where range.location >= 0 && range.upperBound <= mutable.length {
-            mutable.addAttribute(.foregroundColor, value: highlightForegroundColor, range: range)
-        }
-        return mutable
+        if let attributedOverride { return attributedOverride }
+        return NSAttributedString(string: stringValue, attributes: [
+            .font: font,
+            .foregroundColor: textColor,
+            .paragraphStyle: paragraphStyle(),
+        ])
     }
 
     override var intrinsicContentSize: NSSize {
@@ -193,44 +161,6 @@ final class LightLabel: NSView {
         } else {
             drawingRect = bounds
         }
-        // Yellow rounded backgrounds for search-match ranges sit *under* the text. We render them
-        // inline (instead of as `CAShapeLayer` overlays the way `NSTextField` does) because we
-        // own the entire draw path here and a single attributed string + glyph-range pass is
-        // cheaper than juggling sublayers.
-        if !highlightRanges.isEmpty {
-            drawHighlightBackgrounds(attributedString: attr, in: drawingRect)
-        }
         attr.draw(in: drawingRect)
-    }
-
-    private func drawHighlightBackgrounds(attributedString: NSAttributedString, in rect: NSRect) {
-        let textStorage = NSTextStorage(attributedString: attributedString)
-        let layoutManager = NSLayoutManager()
-        let textContainer = NSTextContainer(size: NSSize(width: rect.width, height: .greatestFiniteMagnitude))
-        textContainer.lineFragmentPadding = 0
-        textContainer.maximumNumberOfLines = maximumNumberOfLines
-        textContainer.lineBreakMode = lineBreakMode
-        layoutManager.addTextContainer(textContainer)
-        textStorage.addLayoutManager(layoutManager)
-        layoutManager.ensureLayout(for: textContainer)
-        Appearance.searchMatchHighlightColor.setFill()
-        let isRTL = userInterfaceLayoutDirection == .rightToLeft
-        for range in highlightRanges where range.location >= 0 && range.upperBound <= attributedString.length {
-            let glyphRange = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
-            guard glyphRange.length > 0 else { continue }
-            layoutManager.enumerateEnclosingRects(forGlyphRange: glyphRange, withinSelectedGlyphRange: NSRange(location: NSNotFound, length: 0), in: textContainer) { glyphRect, _ in
-                var bgRect = glyphRect.offsetBy(dx: rect.minX, dy: rect.minY)
-                bgRect = bgRect.insetBy(dx: -2, dy: -1)
-                // Trim a sliver off the leading edge for visual breathing room between adjacent
-                // highlights of separate words. Mirror direction for RTL.
-                let trim: CGFloat = 1
-                if isRTL {
-                    bgRect = NSRect(x: bgRect.minX, y: bgRect.minY, width: max(bgRect.width - trim, 0.5), height: bgRect.height)
-                } else {
-                    bgRect = NSRect(x: bgRect.minX + trim, y: bgRect.minY, width: max(bgRect.width - trim, 0.5), height: bgRect.height)
-                }
-                NSBezierPath(roundedRect: bgRect, xRadius: 3, yRadius: 3).fill()
-            }
-        }
     }
 }

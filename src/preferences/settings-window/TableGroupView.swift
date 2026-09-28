@@ -445,8 +445,6 @@ class TableGroupView: ClickHoverStackView {
         leftLabel.alignment = .left
         leftLabel.lineBreakMode = .byTruncatingTail
         leftLabel.maximumNumberOfLines = 1
-        SettingsSearchIndex.registerString(leftText)
-        SettingsSearchIndex.registerTarget(SettingsSearchHighlight.highlightTarget(leftLabel))
         return leftLabel
     }
 

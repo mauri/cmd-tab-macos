@@ -13,75 +13,7 @@ enum MenubarIconPreference: CaseIterable, MacroPreference {
     }
 }
 
-enum LanguagePreference: CaseIterable, MacroPreference {
-    case systemDefault
-    case indonesian
-    case german
-    case english
-    case spanish
-    case french
-    case italian
-    case dutch
-    case polish
-    case portugueseBrasil
-    case swedish
-    case vietnamese
-    case turkish
-    case russian
-    case hebrew
-    case arabic
-    case thai
-    case japanese
-    case chineseSimplified
-    case chineseTraditional
-    case chineseHongKong
-    case korean
-
-    private static let metadata: [LanguagePreference: (name: String, code: String?)] = [
-        .systemDefault: (NSLocalizedString("System Default", comment: ""), nil),
-        .arabic: ("العربية", "ar"),
-        .german: ("Deutsch", "de"),
-        .english: ("English", "en"),
-        .spanish: ("Español", "es"),
-        .hebrew: ("עִבְרִית", "he"),
-        .french: ("Français", "fr"),
-        .indonesian: ("Bahasa Indonesia", "id"),
-        .italian: ("Italiano", "it"),
-        .japanese: ("日本語", "ja"),
-        .korean: ("한국어", "ko"),
-        .dutch: ("Nederlands", "nl"),
-        .polish: ("Polski", "pl"),
-        .portugueseBrasil: ("Português (Brasil)", "pt-BR"),
-        .russian: ("Русский", "ru"),
-        .swedish: ("Svenska", "sv"),
-        .thai: ("ภาษาไทย", "th"),
-        .turkish: ("Türkçe", "tr"),
-        .vietnamese: ("Tiếng Việt", "vi"),
-        .chineseSimplified: ("简体中文", "zh-CN"),
-        .chineseTraditional: ("繁體中文", "zh-TW"),
-        .chineseHongKong: ("繁體中文 (香港)", "zh-HK"),
-    ]
-
-    var localizedString: String {
-        Self.metadata[self]!.name
-    }
-
-    var appleLanguageCode: String? {
-        Self.metadata[self]!.code
-    }
-
-    /// AppKit resolves which `.lproj` the app loads from `AppleLanguages` at launch, so writing it
-    /// only takes effect after a restart. `.systemDefault` means removing the key, not writing one.
-    func applyToAppleLanguages() {
-        if self == .systemDefault {
-            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
-        } else {
-            UserDefaults.standard.set([appleLanguageCode!], forKey: "AppleLanguages")
-        }
-    }
-}
-
-enum ShortcutStylePreference: CaseIterable, SfSymbolMacroPreference {
+enum ShortcutStylePreference: CaseIterable, MacroPreference {
     case focusOnRelease
     case doNothingOnRelease
 
@@ -89,13 +21,6 @@ enum ShortcutStylePreference: CaseIterable, SfSymbolMacroPreference {
         switch self {
             case .focusOnRelease: return NSLocalizedString("Focus", comment: "")
             case .doNothingOnRelease: return NSLocalizedString("Hold", comment: "")
-        }
-    }
-
-    var symbol: Symbols {
-        switch self {
-            case .focusOnRelease: return .cursorarrowRays
-            case .doNothingOnRelease: return .pauseRectangle
         }
     }
 }
@@ -224,17 +149,9 @@ enum ShowTitlesPreference: CaseIterable, MacroPreference {
             case .appNameAndWindowTitle: return NSLocalizedString("Application Name - Window Title", comment: "")
         }
     }
-
-    var image: WidthHeightImage {
-        switch self {
-            case .windowTitle: return WidthHeightImage(name: "show_running_windows")
-            case .appName: return WidthHeightImage(name: "show_running_applications")
-            case .appNameAndWindowTitle: return WidthHeightImage(name: "show_running_applications_windows")
-        }
-    }
 }
 
-enum AppearanceSizePreference: CaseIterable, SfSymbolMacroPreference {
+enum AppearanceSizePreference: CaseIterable, MacroPreference {
     case small
     case medium
     case large
@@ -248,18 +165,9 @@ enum AppearanceSizePreference: CaseIterable, SfSymbolMacroPreference {
             case .auto: return NSLocalizedString("Auto", comment: "")
         }
     }
-
-    var symbol: Symbols {
-        switch self {
-            case .small: return .moonphaseWaningGibbousInverse
-            case .medium: return .moonphaseLastQuarterInverse
-            case .large: return .moonphaseWaningCrescentInverse
-            case .auto: return .sparkles
-        }
-    }
 }
 
-enum AppearanceThemePreference: CaseIterable, SfSymbolMacroPreference {
+enum AppearanceThemePreference: CaseIterable, MacroPreference {
     case light
     case dark
     case system
@@ -269,14 +177,6 @@ enum AppearanceThemePreference: CaseIterable, SfSymbolMacroPreference {
             case .light: return NSLocalizedString("Light", comment: "")
             case .dark: return NSLocalizedString("Dark", comment: "")
             case .system: return NSLocalizedString("System", comment: "")
-        }
-    }
-
-    var symbol: Symbols {
-        switch self {
-            case .light: return .sunMax
-            case .dark: return .moonFill
-            case .system: return .laptopcomputer
         }
     }
 }
@@ -315,26 +215,6 @@ enum ExceptionIgnorePreference: String/* required for jsonEncode */, CaseIterabl
 // we don't want to store every value in UserDefaults as the user could change them and contradict the macro
 protocol MacroPreference {
     var localizedString: LocalizedString { get }
-}
-
-protocol SfSymbolMacroPreference: MacroPreference {
-    var symbol: Symbols { get }
-}
-
-protocol ImageMacroPreference: MacroPreference {
-    var image: WidthHeightImage { get }
-}
-
-struct WidthHeightImage {
-    var width: CGFloat
-    var height: CGFloat
-    var name: String
-
-    init(width: CGFloat = 80, height: CGFloat = 50, name: String) {
-        self.width = width
-        self.height = height
-        self.name = name
-    }
 }
 
 typealias LocalizedString = String

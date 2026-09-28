@@ -201,25 +201,6 @@ class SidebarListRow: ClickHoverStackView {
         toolTip = summary.isEmpty ? title : "\(title)\n\(summary)"
     }
 
-    /// Register the row's current title + summary text into the active `SettingsSearchIndex.Builder`
-    /// (if any), along with highlight targets for both labels. Call this *after* `setContent` so the
-    /// indexed strings match what the user sees. A no-op outside an `indexed { ... }` scope.
-    ///
-    /// Sidebar rows are rebuilt *after* the section's build-time `indexed` scope (ControlsTab's
-    /// `refreshShortcutRows`), so they can't register themselves at creation — there's no active
-    /// builder. Instead the owning tab re-publishes all its rows through
-    /// `SettingsWindow.refreshSectionSearchContent`, which re-opens an `indexed { ... }` scope and
-    /// calls this on each current row (at build time and after every rebuild). The build-time walk
-    /// deliberately skips `SidebarListRow`s so those rows live solely in the section's replaceable
-    /// dynamic content — no stale targets for since-removed rows. Targets read the labels'
-    /// `stringValue` live, so in-place content edits don't need re-registration.
-    func registerSearchContent() {
-        SettingsSearchIndex.registerString(titleLabel.stringValue)
-        SettingsSearchIndex.registerString(summaryLabel.stringValue)
-        SettingsSearchIndex.registerTarget(SettingsSearchHighlight.highlightTarget(titleLabel))
-        SettingsSearchIndex.registerTarget(SettingsSearchHighlight.highlightTarget(summaryLabel))
-    }
-
     /// Updates only the summary line, leaving title/icon untouched. Use when the underlying
     /// data changed in a way that only affects the summary (e.g. dropdown selection changed
     /// but app identity is the same).
