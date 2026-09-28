@@ -261,20 +261,4 @@ final class AttentionDriverTests: XCTestCase {
     }
 
     // MARK: reason codes
-
-    /// Every input maps to a reason code, so nothing can be attributed to "focus" in general.
-    func testEveryInputHasADistinctReasonCode() {
-        let inputs: [ReducerInput] = [
-            .windowFocused(wid: 1, now: 0),
-            .windowOrderedIn(wid: 1, now: 0, inSpaceTransition: false),
-            .appActivated(pid: 1, now: 0),
-            .axFocusedWindowRead(pid: 1, wid: 1, viaActivationRead: false),
-            .axFocusedWindowRead(pid: 1, wid: 1, viaActivationRead: true),
-            .axFocusedWindowReadFailed(pid: 1),
-            .zOrderRead(widsTopFirst: []),
-        ]
-        let reasons = inputs.map { AttentionDriver.reason(for: $0) }
-        XCTAssertEqual(reasons, ["ws808", "ws815", "activation", "axFocusedRead", "axActivationRead",
-                                 "axReadFailed", "zOrderSeed"])
-    }
 }

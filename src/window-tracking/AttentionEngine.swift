@@ -50,21 +50,7 @@ class AttentionEngine {
         let outcome = driver.decide(input, context: context)
         guard let target = outcome.wid else { return DispatchOutcome(attention: nil, readPid: outcome.readPid) }
         Windows.promoteAttentionEvidence(outcome.observedWid ?? target)
-        let pid = Windows.byWindowId[target]?.application.pid
-        TrackingTelemetryRecorder.attentionCommitted(pid: pid ?? 0, wid: target,
-            processGeneration: pid.flatMap { generations[$0] }, source: provider(of: input),
-            reason: AttentionDriver.reason(for: input), status: outcome.reason)
         return DispatchOutcome(attention: (target, outcome.observedWid ?? target), readPid: outcome.readPid)
-    }
-
-    /// Which channel named the window, for telemetry. The reducer's vocabulary says where an input came from,
-    /// and that is exactly what a disagreement has to be attributable to — recording every one of them as
-    /// `accessibility` would make an activation and an app's own answer indistinguishable in a capture.
-    private static func provider(of input: ReducerInput) -> TrackingProvider {
-        switch input {
-        case .appActivated: return .workspace
-        default: return .accessibility
-        }
     }
 
     /// Commit an attention decision that did not arrive as a reducer input — a click, or an app answering
@@ -82,14 +68,12 @@ class AttentionEngine {
     /// callback from the dead one would look current to every rule keyed on identity.
     static func processStarted(_ pid: pid_t) {
         generations[pid] = (generations[pid] ?? 0) + 1
-        TrackingTelemetryRecorder.trackingGenerationChanged()
     }
 
     static func processExited(_ pid: pid_t) {
         settlePolicy.forget(pid: pid)
         guard let generation = generations[pid] else { return }
         driver.processExited(ProcessGeneration(pid: pid, generation: generation))
-        TrackingTelemetryRecorder.processExited(pid)
     }
 
     /// The generation the tracking pipeline currently associates with this pid. Lazily assigned, so an app
@@ -142,23 +126,15 @@ class AttentionEngine {
         let wid = offer.wid
         let representativeWid = WindowSurfaceInventory.representativeWid(wid)
         guard Windows.byWindowId[representativeWid] != nil else {
-            return withRepresentedWindow(wid, pid: pid,
-                success: { applySemanticFocus(offer) }) {
-                    TrackingTelemetryRecorder.attentionRefused(pid: pid, wid: wid,
-                        source: .accessibility, reason: "unrepresented")
-                }
+            return withRepresentedWindow(wid, pid: pid, success: { applySemanticFocus(offer) }, failure: {})
         }
         let outcome = driver.decideSemantic(offer, context: context())
         // Only a COMMITTED result is attention. Writing the refused ones as attention too would leave
         // `lastAttention` reporting a window the rules had just declined, which is the opposite of what a
         // reader of that field is asking.
         guard let target = outcome.wid else {
-            return TrackingTelemetryRecorder.attentionRefused(pid: pid, wid: wid, source: .accessibility,
-                reason: outcome.reason)
+            return
         }
-        TrackingTelemetryRecorder.attentionCommitted(pid: pid, wid: target,
-            processGeneration: generations[pid], source: .accessibility, reason: "axObserver",
-            status: outcome.reason)
         commit(target, observed: outcome.observedWid)
     }
 
@@ -169,38 +145,28 @@ class AttentionEngine {
     /// that commits immediately, without waiting for the app to speak. Field 40 has public target-pid
     /// semantics; matching it against a tracked window's cached owner makes the private wid field fail
     /// closed without another WindowServer call.
-    static func directedAttention(_ kind: DirectedAttentionKind, pid: pid_t, wid: CGWindowID, subtype: Int) {
-        TrackingTelemetryRecorder.sessionTapEvent(subtype: subtype, pid: pid, wid: wid, decoded: true)
+    static func directedAttention(pid: pid_t, wid: CGWindowID) {
         guard Windows.byWindowId[wid] != nil else {
             return withRepresentedWindow(wid, pid: pid, success: {
-                applyDirectedAttention(kind, pid: pid, wid: wid)
-            }) {
-                TrackingTelemetryRecorder.attentionRefused(pid: pid, wid: wid,
-                    source: .annotatedSession, reason: "unrepresented")
-            }
+                applyDirectedAttention(pid: pid, wid: wid)
+            }, failure: {})
         }
-        applyDirectedAttention(kind, pid: pid, wid: wid)
+        applyDirectedAttention(pid: pid, wid: wid)
     }
 
-    private static func applyDirectedAttention(_ kind: DirectedAttentionKind, pid: pid_t, wid: CGWindowID) {
+    private static func applyDirectedAttention(pid: pid_t, wid: CGWindowID) {
         let representativeWid = WindowSurfaceInventory.representativeWid(wid)
         guard let window = Windows.byWindowId[representativeWid] else {
-            return TrackingTelemetryRecorder.attentionRefused(pid: pid, wid: wid,
-                source: .annotatedSession, reason: "unrepresented")
+            return
         }
         guard window.application.pid == pid else {
-            return TrackingTelemetryRecorder.attentionRefused(pid: pid, wid: wid,
-                source: .annotatedSession, reason: "pidMismatch")
+            return
         }
         Windows.promoteAttentionEvidence(wid)
         let outcome = driver.decideDirected(pid: pid, wid: wid, context: context())
         guard let target = outcome.wid else {
-            return TrackingTelemetryRecorder.attentionRefused(pid: pid, wid: wid, source: .annotatedSession,
-                reason: outcome.reason)
+            return
         }
-        TrackingTelemetryRecorder.attentionCommitted(pid: pid, wid: target,
-            processGeneration: generations[pid], source: .annotatedSession,
-            reason: kind == .commandBacktick ? "type13cycle" : "type13click", status: outcome.reason)
         commit(target, observed: outcome.observedWid)
     }
 

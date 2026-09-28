@@ -159,14 +159,17 @@ Delete these files:
 - `src/secondary-windows/DebugWindow.swift`, `DebugMenu.swift`, and `DebugProfile.swift`
 - `src/util/MoveToApplicationsFolder.swift`
 - `src/vendors/SparkleDelegate.swift` and `AppCenterCrashes.swift`, with `AppCenterApplication.h` and `AppCenterApplication.m`
-- `src/window-tracking/TrackingTelemetry.swift` and `TrackingTelemetryRecorder.swift`
+- `src/window-tracking/TrackingTelemetry.swift` and `TrackingTelemetryRecorder.swift`, with every call to the recorder
+- `src/events/UserDefaultsEvents.swift`, which only syncs Sparkle's update settings
+- `src/util/StapledTicket.swift`, which only sped up the permission checks that screenshots triggered
 
 Keep `src/debug/MainThreadStall.swift`. It is small and it helps you find latency problems.
 
 Remove the dependencies:
 
 - Remove `vendor/Sparkle` and `vendor/AppCenter` from the Xcode project and from the "Embed Frameworks" build phase.
-- Remove the Sparkle keys from `Info.plist` (`SUPublicEDKey`, `SUEnableAutomaticChecks`, and `SUScheduledCheckInterval`).
+- Remove the Sparkle keys from `Info.plist` (`SUPublicEDKey`, `SUEnableAutomaticChecks`, and `SUScheduledCheckInterval`), the AppCenter keys, and `Domain` / `ApiDomain`. Set `NSPrincipalClass` back to `NSApplication`, make `App` subclass `NSApplication`, and import Cocoa in the bridging header, which `AppCenterApplication.h` used to do.
+- Delete the `vendor/Sparkle` and `vendor/AppCenter` folders, the release scripts that use them (`copy_sparkle_helpers.sh`, `update_appcast.sh`, `upload_symbols_to_appcenter.sh`), and their steps in `.github/workflows/ci_cd.yml`.
 - Remove `updatePolicy` and `crashPolicy` from `Preferences.swift`.
 - Keep `vendor/ShortcutRecorder` only if the settings window still has a shortcut editor.
 

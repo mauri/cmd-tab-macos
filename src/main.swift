@@ -68,7 +68,6 @@ fileprivate func emergencyExit(_ logs: Any?...) {
     setNativeCommandTabEnabled(true)
     print(logs)
     printStackTrace()
-    StapledTicket.restoreBeforeExit()
     fflush(stdout)
     fflush(stderr)
     _exit(0)

@@ -52,15 +52,6 @@ struct QueryIssueOrder: Equatable {
     func accepts(_ sequence: UInt64) -> Bool { sequence == latest }
 }
 
-/// Who told us something. Telemetry only: a disagreement has to be attributable to a channel rather than to
-/// "focus" in general.
-enum TrackingProvider: Hashable {
-    case windowServer
-    case workspace
-    case accessibility
-    case annotatedSession
-}
-
 /// What entitles a call to move the window order. See `WindowEventReducer.applyFocusAndBump` and
 /// `AttentionOrderSpecs.md`.
 enum AttentionWriteSource: Equatable {

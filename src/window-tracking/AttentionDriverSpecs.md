@@ -71,11 +71,6 @@ model's by what it says about the user. Four groups:
 - **testSemanticAnswerUsesTheProvidersPid** — the app observer's trusted pid is not re-inferred from a wid
   that may be untracked or recycled.
 
-### D. Attribution
-
-- **testEveryInputHasADistinctReasonCode** — every input maps to its own reason code, so nothing is ever
-  attributed to "focus" in general.
-
 ## Seeding the front process
 
 The model learns which app is in front from activations. An app that was already frontmost when AltTab

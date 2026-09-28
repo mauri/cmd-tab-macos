@@ -1,10 +1,8 @@
 import Cocoa
 import Darwin
 import ShortcutRecorder
-import AppCenterCrashes
-import Sparkle
 
-class App: AppCenterApplication {
+class App: NSApplication {
     /// Held for the process lifetime. `static let` is lazy, so `init` has to touch it or App Nap is never
     /// disabled.
     private static let activity = ProcessInfo.processInfo.beginActivity(options: .userInitiatedAllowingIdleSystemSleep,
@@ -28,12 +26,6 @@ class App: AppCenterApplication {
     /// (`showUiOrCycleSelection`). One inventory lands ~280ms after it is asked for, measured.
     private static let launchInventoryGraceInMs = 400
     private static var pendingShowSettingsWindow = false
-    /// Written once and never read: AppCenter holds its delegate weakly, so this is the strong reference
-    /// that keeps the crash handler alive for the process lifetime.
-    // periphery:ignore
-    private static var appCenterDelegate: AppCenterCrash?
-    static var sparkleDelegate: SparkleDelegate?
-    static var updaterController: SPUStandardUpdaterController?
     // don't queue multiple delayed rebuildUi() calls
     private static var delayedDisplayScheduled = 0
     private static let switcherUiRepaintCoalescer = RepaintCoalescer()
@@ -113,27 +105,9 @@ class App: AppCenterApplication {
         focusSelectedWindow(selectedWindow)
     }
 
-    @objc static func checkForUpdatesNow(_ sender: NSMenuItem) {
-        GeneralTab.checkForUpdatesNow(sender)
-    }
-
     // periphery:ignore:parameters sender - NSMenuItem target/action signature
     @objc static func checkPermissions(_ sender: NSMenuItem) {
         showPermissionsWindow()
-    }
-
-    @objc static func showFeedbackPanel() {
-        let wasFresh = FeedbackWindow.shared == nil
-        initializeFeedbackWindowIfNeeded()
-        // Fresh init already runs reset(); skip the redundant second call so we don't
-        // double-fire the Sparkle preflight on the first ever open.
-        if !wasFresh { FeedbackWindow.shared?.reset() }
-        showSecondaryWindow(FeedbackWindow.shared!)
-    }
-
-    @objc static func showDebugWindow() {
-        initializeDebugWindowIfNeeded()
-        showSecondaryWindow(DebugWindow.shared!)
     }
 
     @objc static func showSettingsWindow() {
@@ -177,14 +151,6 @@ class App: AppCenterApplication {
 
     private static func initializeAboutWindowIfNeeded() {
         if AboutWindow.shared == nil { _ = AboutWindow() }
-    }
-
-    private static func initializeFeedbackWindowIfNeeded() {
-        if FeedbackWindow.shared == nil { _ = FeedbackWindow() }
-    }
-
-    private static func initializeDebugWindowIfNeeded() {
-        if DebugWindow.shared == nil { _ = DebugWindow() }
     }
 
     private static func initializePermissionsWindowIfNeeded() {
@@ -434,18 +400,6 @@ class App: AppCenterApplication {
         WindowAttentionEvents.observe()
         // Needs the AX runloop `BackgroundWork.start()` created, so it cannot go with the launch-time setup.
         AxObserverRegistry.shared.startRecoveryTicks()
-        App.sparkleDelegate = SparkleDelegate()
-        App.updaterController = SPUStandardUpdaterController(
-            startingUpdater: false,
-            updaterDelegate: App.sparkleDelegate!,
-            userDriverDelegate: nil)
-        #if DEBUG
-        if !Preferences.qaPristine {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 30) { App.updaterController?.startUpdater() }
-        }
-        #else
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { App.updaterController?.startUpdater() }
-        #endif
         PreferencesEvents.initialize()
         showSettingsWindowOnFirstLaunchIfNeeded()
         if pendingShowSettingsWindow {
@@ -458,37 +412,25 @@ class App: AppCenterApplication {
 
 extension App: NSApplicationDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        App.appCenterDelegate = AppCenterCrash()
         App.shared.disableRelaunchOnLogin()
         Logger.initialize()
         MainThreadStall.observe()
         Logger.info { "Launching AltTab \(App.version)" }
         // Create the background queues first, before anything that can pump the main run loop re-entrantly
-        // (the "move to /Applications" modal below, the WindowServer tap's discovery). Window.init reads
+        // (the WindowServer tap's discovery). Window.init reads
         // BackgroundWork.appIconsQueue (an implicitly-unwrapped optional) via Application.fetchAppIcon, so
         // if a queued discovery block drains re-entrantly before this runs, it traps on the nil queue (#5819).
         // preStart just allocates queues and depends on nothing, so it's safe at the very top.
         BackgroundWork.preStart()
         // Same reasoning as the queues above: a preference the user never changed lives only in the
         // registration domain, so reading one before `registerDefaults()` traps on the force-unwrap in
-        // `CachedUserDefaults.getThenConvertOrReset`. The "move to /Applications" modal below drains the
-        // main queue, and the crash-report attachment delegate hops to main there to build the debug
-        // profile, which reads `showOnScreen` / `appearanceStyle`. Migrations must keep running before
+        // `CachedUserDefaults.getThenConvertOrReset`. Migrations must keep running before
         // `registerDefaults()` (they read raw plist values), which `initialize()` already guarantees.
         // This only touches UserDefaults + TIS (main-thread), so it depends on nothing below.
         Preferences.initialize()
-        // Handle the "move to /Applications" prompt before anything else sets up the model. It runs a modal
-        // alert (and may relaunch + exit), both of which pump the main run loop, so it must come before the
-        // WindowServer tap below: otherwise the tap's queued window discovery drains re-entrantly during the
-        // modal and builds a Window while the model is half-built. A translocated instance the user moves
-        // relaunches from /Applications, so the setup we skip by returning here early is thrown away anyway.
         #if DEBUG
         UserDefaults.standard.set(true, forKey: "NSConstraintBasedLayoutVisualizeMutuallyExclusiveConstraints")
-        #else
-        MoveToApplicationsFolder.promptIfNeeded()
         #endif
-        // after the prompt, which may copy this bundle elsewhere and relaunch from there
-        StapledTicket.parkInBackground()
         // The WindowServer event tap is CGS-only (needs no Accessibility, no Preferences, no model), so
         // install it before the permission gate. The skeleton is then available immediately and
         // independent of whether the user has granted AX.
@@ -510,7 +452,6 @@ extension App: NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         Logger.info { "" }
-        StapledTicket.restoreBeforeExit()
         return .terminateNow
     }
 }

@@ -1,16 +1,6 @@
 import Foundation
 import CoreGraphics
 
-/// What the click channel saw. Only `clickActivation` has ever been observed firing — see `AttentionSubtype`,
-/// where 18 (`clickReactivation`) and 19 (`commandBacktick`) are decoded and dead. They stay named because
-/// the decoder still distinguishes them and a future OS may start emitting them.
-enum DirectedAttentionKind: Equatable {
-    case clickActivation
-    // periphery:ignore - never constructed today; kept for the reason above
-    case clickReactivation
-    case commandBacktick
-}
-
 /// An AX semantic answer stamped when it enters the main-thread model, before burst settling or discovery
 /// can delay it. The sequence therefore expresses observation order, not timer completion order.
 struct SemanticAttentionOffer: Equatable {
@@ -46,7 +36,7 @@ struct AttentionDriver {
     struct Outcome: Equatable {
         /// the window to put in front, or nil when nothing should move
         var wid: CGWindowID?
-        /// why, for telemetry: `front`, `recorded`, `needsRead`, `none`, or `ignored.<reason>`
+        /// which decision path ran, checked by the tests: `front`, `recorded`, `needsRead`, `none`, or `ignored.<reason>`
         var reason = "noInput"
         /// the window the provider NAMED, before the tab mapping — see `ReducerInput.attentionCommitted`
         var observedWid: CGWindowID?
@@ -119,37 +109,6 @@ struct AttentionDriver {
         switch input {
         case let .axFocusedWindowRead(_, wid, _): return wid
         default: return nil
-        }
-    }
-
-    /// Which input produced a decision, for telemetry. `ws808`/`ws815` are named because they are exactly the
-    /// two the architecture refuses as attention, so seeing them here at all is a finding.
-    static func reason(for input: ReducerInput) -> String {
-        switch input {
-        case .windowFocused: return "ws808"
-        case .windowOrderedIn: return "ws815"
-        case .windowOrderedOut: return "ws816"
-        case .windowCreated: return "wsCreate"
-        case .windowDestroyed: return "wsDestroy"
-        case .windowMovedOrResized: return "wsGeometry"
-        case .appActivated: return "activation"
-        case .spaceMembershipChanged, .spaceTransitionStarted, .spaceChangeSettled: return "space"
-        case .discoveryLanded: return "discovery"
-        case .titleAndTabsRead: return "titleAndTabs"
-        case .windowServerStateRead: return "wsStateRead"
-        case .spacesSynced: return "spacesSynced"
-        case .axFocusedWindowRead(_, _, let viaActivationRead):
-            return viaActivationRead ? "axActivationRead" : "axFocusedRead"
-        case .axFocusedWindowReadFailed: return "axReadFailed"
-        case .livenessConfirmedDead: return "livenessDead"
-        case .axElementEnded: return "axElementEnded"
-        case .axElementReconciled: return "axElementReconciled"
-        case .cgsWindowListsRead: return "phantomScan"
-        case .zOrderRead: return "zOrderSeed"
-        case .attentionCommitted: return "attentionCommitted"
-        case .holdReleaseCheck: return "holdRelease"
-        case .dragOutCheck: return "dragOut"
-        case .standaloneTabCheck: return "standaloneTab"
         }
     }
 

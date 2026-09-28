@@ -25,8 +25,6 @@ class Preferences {
         "menubarIconShown": "true",
         "language": LanguagePreference.systemDefault.indexAsString,
         "exceptions": defaultExceptions(),
-        "updatePolicy": UpdatePolicyPreference.autoCheck.indexAsString,
-        "crashPolicy": CrashPolicyPreference.ask.indexAsString,
         "settingsWindowShownOnFirstLaunch": "false",
     ]
 
@@ -58,8 +56,6 @@ class Preferences {
     static var showOnScreen: ShowOnScreenPreference { CachedUserDefaults.macroPref("showOnScreen", ShowOnScreenPreference.allCases) }
     static var titleTruncation: TitleTruncationPreference { CachedUserDefaults.macroPref("titleTruncation", TitleTruncationPreference.allCases) }
     static var showTitles: ShowTitlesPreference { CachedUserDefaults.macroPref("showTitles", ShowTitlesPreference.allCases) }
-    static var updatePolicy: UpdatePolicyPreference { CachedUserDefaults.macroPref("updatePolicy", UpdatePolicyPreference.allCases) }
-    static var crashPolicy: CrashPolicyPreference { CachedUserDefaults.macroPref("crashPolicy", CrashPolicyPreference.allCases) }
     static var shortcutStyle: ShortcutStylePreference { CachedUserDefaults.macroPref("shortcutStyle", ShortcutStylePreference.allCases) }
     static var menubarIcon: MenubarIconPreference { CachedUserDefaults.macroPref("menubarIcon", MenubarIconPreference.allCases) }
     static var menubarIconShown: Bool { CachedUserDefaults.bool("menubarIconShown") }

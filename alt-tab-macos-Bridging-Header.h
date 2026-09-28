@@ -1,2 +1,2 @@
-#import "AppCenterApplication.h"
+#import <Cocoa/Cocoa.h>
 #import "ObjCExceptionCatcher.h"

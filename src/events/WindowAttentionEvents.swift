@@ -80,7 +80,6 @@ class WindowAttentionEvents {
         guard enabled else { return }
         guard fields != nil else {
             Logger.debug { "attention tap: event fields unsupported" }
-            TrackingTelemetryRecorder.attentionTapLifecycle(installed: false, enabled: false)
             return
         }
         eventTap = CGEvent.tapCreate(
@@ -92,7 +91,6 @@ class WindowAttentionEvents {
             userInfo: nil)
         guard let eventTap else {
             Logger.debug { "attention tap: not installed" }
-            TrackingTelemetryRecorder.attentionTapLifecycle(installed: false, enabled: false)
             return
         }
         guard let runLoop = BackgroundWork.keyboardAndMouseEventsThread?.runLoop else {
@@ -100,12 +98,10 @@ class WindowAttentionEvents {
             return
         }
         CFRunLoopAddSource(runLoop, CFMachPortCreateRunLoopSource(nil, eventTap, 0), .commonModes)
-        TrackingTelemetryRecorder.attentionTapLifecycle(installed: true, enabled: true)
     }
 
     static func reEnableTapIfNeeded() {
         if CGEvent.reEnableTapIfNeeded(eventTap, wanted: enabled) {
-            TrackingTelemetryRecorder.attentionTapLifecycle(installed: true, enabled: true)
             Logger.warning { "attention tap re-enabled" }
         }
     }
@@ -122,38 +118,31 @@ class WindowAttentionEvents {
     private static func decode(_ event: CGEvent) {
         guard let fields else { return }
         let length = event.getIntegerValueField(fields.recordLength)
-        guard length == expectedRecordLength else { return invalid(nil) }
+        guard length == expectedRecordLength else { return }
         let subtype = Int(event.getIntegerValueField(fields.subtype))
         guard let kind = AttentionSubtype(rawValue: subtype) else { return other(subtype) }
         let wid = CGWindowID(truncatingIfNeeded: event.getIntegerValueField(fields.windowId))
         let pid = pid_t(truncatingIfNeeded: event.getIntegerValueField(fields.targetPid))
-        guard wid != 0, pid > 0 else { return invalid(subtype) }
+        guard wid != 0, pid > 0 else { return }
         DispatchQueue.main.async { deliver(kind, pid: pid, wid: wid) }
     }
 
     private static func deliver(_ kind: AttentionSubtype, pid: pid_t, wid: CGWindowID) {
         guard !isOurOwnPanel(pid) else { return }
         switch kind {
-        case .clickActivate, .clickReactivate:
-            AttentionEngine.directedAttention(.clickActivation, pid: pid, wid: wid, subtype: kind.rawValue)
-        case .commandBacktick:
-            AttentionEngine.directedAttention(.commandBacktick, pid: pid, wid: wid, subtype: kind.rawValue)
+        case .clickActivate, .clickReactivate, .commandBacktick:
+            AttentionEngine.directedAttention(pid: pid, wid: wid)
         case .resignA, .resignB:
-            // Diagnostics only, never a winner. A resign fires in pairs a millisecond apart, and one of them
-            // has been measured naming the window that had just ACQUIRED key — so "the last resign names who
-            // really had it" is false, and a hung app can leave a Space with no key window at all while its
-            // resign still fired.
-            TrackingTelemetryRecorder.attentionResign(pid: pid, wid: wid, subtype: kind.rawValue)
+            // Never a winner. A resign fires in pairs a millisecond apart, and one of them has been measured
+            // naming the window that had just ACQUIRED key — so "the last resign names who really had it" is
+            // false, and a hung app can leave a Space with no key window at all while its resign still fired.
+            break
         }
     }
 
     /// AltTab's own panels take no attention: the switcher appearing is not the user going somewhere.
     private static func isOurOwnPanel(_ pid: pid_t) -> Bool {
         pid == AXUIElement.currentProcessPid
-    }
-
-    private static func invalid(_ subtype: Int?) {
-        DispatchQueue.main.async { TrackingTelemetryRecorder.attentionTapInvalid(subtype: subtype) }
     }
 
     private static func other(_ subtype: Int) {

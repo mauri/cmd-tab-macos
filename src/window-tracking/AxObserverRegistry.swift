@@ -12,7 +12,7 @@ import ApplicationServices
 /// edge may prompt discovery or reconciliation, but WindowServer evidence still admits and physically retires
 /// surfaces. An AX failure must not remove a window, block another process, or delay the first frame.
 ///
-/// Results feed `AttentionDriver`, which is what turns them into a window order, and telemetry.
+/// Results feed `AttentionDriver`, which is what turns them into a window order.
 ///
 /// Threading: `observers` and `health` belong to `BackgroundWork.axSemanticsThread` and are only touched
 /// there. Callbacks arrive on that thread and hand any IPC to `AXCallScheduler`, so a wedged app stalls its
@@ -286,7 +286,6 @@ class AxObserverRegistry {
         let result = AXObserverCreate(process.pid, Self.callback, &observer)
         guard result == .success, let observer else {
             let error = Self.error(from: result)
-            TrackingTelemetryRecorder.axProviderFailed(process, error)
             return (nil, error)
         }
         return (ObserverEntry(process: process, observer: observer,
@@ -323,11 +322,11 @@ class AxObserverRegistry {
         guard case let .subscriptionStarted(_, observerGeneration) = begun,
               let entry = observers[process.pid], entry.process == process else { return }
         let refcon = Self.packRefcon(pid: process.pid, observerGeneration: observerGeneration)
-        AXCallScheduler.shared.schedule(key: "axobs-\(process.pid)-\(capability.telemetryName)",
+        AXCallScheduler.shared.schedule(key: "axobs-\(process.pid)-\(capability)",
                                         context: "axSemantics", pid: process.pid) {
             let result = entry.element.addNotification(entry.observer, capability.notificationName, refcon)
             if result != .success && result != .notificationAlreadyRegistered {
-                Logger.debug { "axobs pid=\(process.pid) \(capability.telemetryName) refused \(result.rawValue)" }
+                Logger.debug { "axobs pid=\(process.pid) \(capability) refused \(result.rawValue)" }
             }
             self.onAxThread {
                 self.applySubscriptionResult(process, observerGeneration, capability, Self.result(from: result))
@@ -433,7 +432,6 @@ class AxObserverRegistry {
         let decision = AxObserverHealth.reduce(&health, .callback(entry.process,
             observerGeneration: observerGeneration, capability, at: Self.now()))
         guard case .callbackAccepted = decision else { return }
-        TrackingTelemetryRecorder.axNotification(pid)
         // Measured, never believed: a focused-tab notification is recorded with the window it named and
         // nothing else happens. Its production role is decided from the capture, not assumed here.
         guard capability != .focusedTabChanged else { return recordTabSignal(entry.process, element) }
@@ -564,9 +562,6 @@ class AxObserverRegistry {
                                         pid: process.pid) {
             let wid = try element.cgWindowId(pid: process.pid)
             Self.offerElement(process, wid, element, source: "axFocusedTab")
-            DispatchQueue.main.async {
-                TrackingTelemetryRecorder.axFocusedTabSignal(pid: process.pid, wid: wid)
-            }
         }
     }
 
@@ -579,10 +574,10 @@ class AxObserverRegistry {
         // main-window changes arrive together on almost every switch — so a shared key let the focus read
         // swallow the main-window one, and with it the tab-group read that only the latter performs. The
         // coalescing that key was for is still there, now within each capability.
-        AXCallScheduler.shared.schedule(key: "axobs-wid-\(process.pid)-\(capability.telemetryName)",
+        AXCallScheduler.shared.schedule(key: "axobs-wid-\(process.pid)-\(capability)",
                                         context: "axSemantics", pid: process.pid) {
             let wid = try element.cgWindowId(pid: process.pid)
-            Self.offerElement(process, wid, element, source: capability.telemetryName)
+            Self.offerElement(process, wid, element, source: "\(capability)")
             // **The tab switch, carrying its group.** `AXMainWindowChanged` is what the OS emits when the
             // selected tab changes, and the element it hands over answers for its `AXTabGroup` right here —
             // the group's own identity, rather than the arrival-time pairing plus title matching the reducer
@@ -612,13 +607,6 @@ class AxObserverRegistry {
         guard let entry = health.entry(for: process) else { return }
         let capabilities = Array(entry.capabilities)
         Self.setTitleCapability(process.pid, capabilities.contains(.titleChanged))
-        let diagnostics = entry.diagnostics
-        let lifecycle = entry.lifecycle
-        DispatchQueue.main.async {
-            TrackingTelemetryRecorder.axProviderHealth(pid: process.pid, state: lifecycle,
-                observerGeneration: diagnostics.observerGeneration, attempts: diagnostics.attemptCount,
-                capabilities: capabilities, lastError: diagnostics.lastError)
-        }
     }
 
     // MARK: plumbing

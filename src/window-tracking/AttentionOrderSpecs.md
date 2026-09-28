@@ -28,7 +28,6 @@ lets AltTab's own request back in through some other surface.
 - **`AttentionDriver`** translates the reducer's vocabulary into the model's, and allocates arrival
   sequences (`AttentionDriverSpecs.md`).
 - **`AttentionEngine`** is the impure shell: process generations, the per-process settle, the commit.
-- **`TrackingTelemetryRecorder`** only observes. Switching it off cannot change what AltTab does.
 
 The model also exposes a read-only current user context for downstream UX: unknown, front application only,
 or exact represented window. Active-screen placement, initial selection, fullscreen shortcut protection and

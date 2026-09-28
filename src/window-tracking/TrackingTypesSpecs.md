@@ -15,7 +15,6 @@ also records which process generation owned a WindowServer surface.
   wall-clock jump cannot make a retry look overdue.
 - **`QueryIssueOrder`** — a monotonic issue fence for aggregate asynchronous snapshots. Completion order
   cannot make an older query replace the newest issued state.
-- **`TrackingProvider`** — who told us. Telemetry only, so a disagreement is attributable to a channel.
 - **`AttentionWriteSource`** — what entitles a call to move the window order. See `AttentionOrderSpecs.md`.
 
 ## Test scenarios
