@@ -177,9 +177,8 @@ enum TabGroupResolver {
             // can't tell which window it backgrounded from" — so such members were dropped from every
             // partition and left to a later pass. That silently cost the handover: opening a tab in one of
             // two fullscreen windows leaves the outgoing tab Space-less, and with it dropped, the incoming
-            // tab formed no group, inherited no thumbnail from it, and the tile flashed the app ICON before
-            // its own capture landed (rec27, reported as "screenshot → app icon → screenshot"). `lastLeftSpaceId`
-            // is exactly the missing attribution: the 1326 named the Space.
+            // tab formed no group and the tile flickered (rec27). `lastLeftSpaceId` is exactly the missing
+            // attribution: the 1326 named the Space.
             if cluster.contains(where: { $0.isFullscreen }) && spaces.count > 1 {
                 for space in spaces.sorted() {
                     if let g = resolveGroup(cluster.filter {
@@ -349,7 +348,7 @@ enum TabGroupResolver {
         // The visible is the tab that just took over if this pass discovered one — even if still Space-less,
         // since a brand-new tab often is for a beat (only the caller knows it's new; by facts alone it looks
         // like an ungrouped background tab). Else the established visible: hysteresis, so we don't flip to a
-        // background tab that merely also holds a backfilled Space (which flickered the group's thumbnail).
+        // background tab that merely also holds a backfilled Space (which flickered the group's tile).
         // If no member is the visible tab, skip — the AX paths re-establish it.
         // A HELD or BORROWED-Space member never wins the pick while a genuine candidate exists: held means
         // "the outgoing tab, kept drawable through the swap" — the exact opposite of the new active — and a
@@ -489,8 +488,7 @@ enum TabGroupResolver {
         // model legitimately holds more candidates than the window has tabs while a tab switch that MINTS new
         // wids is in flight, because the retired ones aren't swept yet — the count is truth about the OS, not
         // about our in-flight bookkeeping (generator seed 163: a 3-tab window whose group still held the wid a
-        // switch had just retired; the fold was refused and the incoming tile lost its inherited thumbnail,
-        // flashing the app icon). Keeping the bound on the new clause alone also preserves the property that
+        // switch had just retired; the fold was refused and the incoming tile flickered). Keeping the bound on the new clause alone also preserves the property that
         // made this change safe to begin with: where tab titles match window titles, `tabbedSiblingWids`
         // already confirmed the cluster, so nothing here can change that app's behaviour.
         if !confirmedTheOldWay, background.count > visible.tabCount - 1 { return nil }
@@ -918,8 +916,8 @@ enum TabGroupResolver {
         return !sameFrame(joiner, previousRepresentative)
     }
 
-    /// Can this window be drawn as a tile? A window with no size, or a degenerate one, has no thumbnail to
-    /// show. Two live sources, hence the check rather than trust: the OS genuinely publishes a new tab at 0×0
+    /// Can this window be drawn as a tile? A window with no size, or a degenerate one, is not a real window
+    /// yet. Two live sources, hence the check rather than trust: the OS genuinely publishes a new tab at 0×0
     /// before sizing it, and a failed AX read used to report 0×0 too (`AXValueGetValue`'s ignored return —
     /// fixed at the source in `AXUIElement.castSafely`, but a real 0×0 still arrives).
     private static func isPresentable(_ window: TabWindow) -> Bool {

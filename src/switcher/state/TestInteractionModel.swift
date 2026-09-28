@@ -646,8 +646,6 @@ struct TestInteractionModel {
         let all = Set(world.flatMap { $0.allWids })
         e.readUnits.append([.input(.cgsWindowListsRead(visible: visible, all: all,
             queried: queriedWids))])
-        // the switcher captures what it is showing; the pixels land after the reads that decided the layout
-        e.readUnits.append(world.map { .thumbnailCaptured(wid: $0.activeWid) })
         return e
     }
 
@@ -668,6 +666,6 @@ struct TestInteractionModel {
             spaceIsBorrowed: false, isFullscreen: isFullscreen ?? w.isFullscreen, isFullscreenMirrored: false,
             isMinimized: w.isMinimized, isMainWindow: false, isWindowlessApp: false, cgsPhantomLatch: false,
             // A brand-new window has NO pixels yet — its capture lands later, as its own read.
-            lastFocusOrder: 0, creationOrder: Int(wid), hasThumbnail: false)
+            lastFocusOrder: 0, creationOrder: Int(wid))
     }
 }

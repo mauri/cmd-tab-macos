@@ -78,30 +78,4 @@ final class SwitcherSession {
     /// Keeps one-per-app tiles from changing identity while discovery, grouping and search settle.
     var representativeByPid = [pid_t: String]()
     var searchQuery: String = ""
-
-    /// Full-resolution frames for the Preview panel, fetched just-in-time for the selected window and
-    /// its cycling neighbors (`WindowThumbnails.fetchPreviewFrames`, #5861). Living on the session, they
-    /// are released wholesale when it ends, so idle RAM only holds thumbnail-scale images. Capped +
-    /// least-recently-used-evicted so a long session arrow-keying through many windows stays bounded.
-    private static let maxPreviewFrames = 10
-    private var previewFrames = [CGWindowID: CALayerContents]()
-    private var previewFramesLru = [CGWindowID]() // most recently used last
-
-    func hasPreviewFrame(_ wid: CGWindowID) -> Bool { previewFrames[wid] != nil }
-
-    func previewFrame(_ wid: CGWindowID) -> CALayerContents? {
-        guard let frame = previewFrames[wid] else { return nil }
-        previewFramesLru.removeAll { $0 == wid }
-        previewFramesLru.append(wid)
-        return frame
-    }
-
-    func storePreviewFrame(_ wid: CGWindowID, _ frame: CALayerContents) {
-        previewFrames[wid] = frame
-        previewFramesLru.removeAll { $0 == wid }
-        previewFramesLru.append(wid)
-        if previewFramesLru.count > Self.maxPreviewFrames {
-            previewFrames.removeValue(forKey: previewFramesLru.removeFirst())
-        }
-    }
 }

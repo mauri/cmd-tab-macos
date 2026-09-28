@@ -16,7 +16,7 @@ final class WindowEventReducerSpaceTests: XCTestCase {
             spaceIds: [spaceId], spaceIndexes: [Int(spaceId)], isOnAllSpaces: false, spaceIsBorrowed: false,
             isFullscreen: false, isFullscreenMirrored: false, isMinimized: false, isMainWindow: false,
             isWindowlessApp: false, cgsPhantomLatch: false, lastFocusOrder: order,
-            creationOrder: order, hasThumbnail: true)
+            creationOrder: order)
     }
 
     /// One window on each of two Spaces, sitting on Space 1 — the shape a Space switch acts on.

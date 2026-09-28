@@ -32,11 +32,6 @@ final class TestReducerRunner {
         case setMinimized(wid: CGWindowID, isMinimized: Bool)
         /// ambient Space topology the reducer reads but doesn't own (a fullscreen transition / Space switch)
         case setSpaces(visible: [UInt64], current: UInt64, index: (UInt64, Int))
-        /// A window capture landed: the shell now has pixels for this wid. Modelled because the tile falls
-        /// back to the app ICON whenever `thumbnail == nil`, so a tile handed to a window whose capture
-        /// hasn't landed visibly flashes — which is a defect the user sees even when the tile itself never
-        /// disappears.
-        case thumbnailCaptured(wid: CGWindowID)
         /// `Windows.sort()`: the list is re-sorted by MRU before every show. NOT cosmetic — several reducer
         /// rules are order-sensitive first-wins (`applyWindowSpaces`' sibling backfill walks the list in
         /// order; `matchSiblings` claims the first compatible candidate), so which member of a group comes
@@ -64,8 +59,6 @@ final class TestReducerRunner {
     /// to repaint a switcher that is ALREADY OPEN, so a state flip that emits none is a defect the user
     /// sees: the tile keeps the stale value until the panel is closed and reopened (the un-minimize case).
     private(set) var refreshes = [(wids: [CGWindowID], onlyWhileSwitcherOpen: Bool)]()
-    /// every window whose captures the reduction asked to hold until its restore animation ends, in order
-    private(set) var deferredCaptures = [CGWindowID]()
     private var stepIndex = 0
     /// stands in for the shell's `systemUptime` stamp (see `.input`)
     private var clock: TimeInterval = 1
@@ -115,8 +108,6 @@ final class TestReducerRunner {
             checkInvariants(context: "setMinimized \(wid)=\(isMinimized)", checkConvergence: false)
         case .setSpaces(let visible, let current, let index):
             setSpaces(visible: visible, current: current, index: index)
-        case .thumbnailCaptured(let wid):
-            if let i = state.windowIndex(wid) { state.windows[i].hasThumbnail = true }
         case .sortByMru:
             state.windows.sort { $0.lastFocusOrder < $1.lastFocusOrder }
             checkInvariants(context: "sortByMru", checkConvergence: false)
@@ -156,9 +147,7 @@ final class TestReducerRunner {
             refreshes.append((wids, onlyWhileSwitcherOpen))
         case .refreshUiImmediately(let wids):
             refreshes.append((wids, false))
-        case .deferCaptureUntilRestoreEnds(let wid):
-            deferredCaptures.append(wid)
-        case .copyThumbnail, .applyFocus, .updateScreenId, .removeWindowlessPlaceholder,
+        case .applyFocus, .updateScreenId, .removeWindowlessPlaceholder,
              .addWindowlessPlaceholder, .readFocusedWindowOnActivation,
              .checkShortcutsForFocusedWindow, .retireSurface:
             break  // display/AppKit-side; no model content beyond what the reducer already wrote

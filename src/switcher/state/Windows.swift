@@ -38,7 +38,6 @@ class Windows {
         let expiresAt: TimeInterval
         let focusedAt: TimeInterval
         let creationOrder: Int
-        let thumbnail: CALayerContents?
         let groupMembers: [CGWindowID]
         let groupRepresentative: CGWindowID?
         let wasFocusedWindow: Bool
@@ -323,7 +322,7 @@ class Windows {
         guard current != previous else { return }
         // The pointer is still over the tile it was on, which now draws another window. Forget that tile so
         // the next pointer move hovers whatever is under it.
-        TilesView.thumbnailOverView.previousTarget = nil
+        TilesView.tileOverView.previousTarget = nil
         session.hoveredIndex = current
         if current == nil { session.hoveredTarget = nil }
         [previous, current].compactMap { $0 }.forEach { TilesView.highlight($0) }
@@ -383,10 +382,9 @@ class Windows {
             lastWindowActivityType = .hover
         }
         if !fromMouse && !fromRefresh {
-            TilesView.thumbnailOverView.resetHoveredWindow()
+            TilesView.tileOverView.resetHoveredWindow()
         }
-        // Search can replace the best match at the same index. Its identity must still move so the
-        // Preview fetches the new filtered neighborhood instead of treating the previous match as selected.
+        // Search can replace the best match at the same index, so the selected identity must still move.
         if (!fromMouse || Preferences.mouseHoverEnabled)
                && (newIndex != session.selectedIndex || session.selectedTarget != newWindow.id || lastWindowActivityType == .hover) {
             let oldIndex = session.selectedIndex
@@ -394,8 +392,6 @@ class Windows {
             session.selectedIndex = newIndex
             session.selectedTarget = newWindow.id
             TilesView.highlight(oldIndex)
-            WindowThumbnails.previewSelectedIfNeeded()
-            WindowThumbnails.fetchPreviewFrames()
             index = session.selectedIndex
             lastWindowActivityType = .focus
         }
@@ -428,29 +424,6 @@ class Windows {
             return
         }
         updateSelectedAndHoveredWindowIndex(nextIndex)
-    }
-
-    /// The selected window plus up to `radius` displayed windows on each side in cycling order (wrapping
-    /// like Tab does). These are the windows the Preview panel may imminently show, so they are the only
-    /// ones worth capturing at full resolution (#5861); quick Tab presses land on a pre-captured neighbor.
-    static func selectedNeighborhoodIds(_ radius: Int = 2) -> Set<CGWindowID> {
-        guard let session = SwitcherSession.current, session.selectedIndex < list.count else { return [] }
-        var ids = Set<CGWindowID>()
-        if let wid = list[session.selectedIndex].cgWindowId { ids.insert(wid) }
-        for step in [1, -1] {
-            var index = session.selectedIndex
-            var found = 0
-            var iterations = 0
-            while found < radius && iterations < list.count {
-                index = (index + step + list.count) % list.count
-                iterations += 1
-                if shouldDisplay(list[index]) {
-                    found += 1
-                    if let wid = list[index].cgWindowId { ids.insert(wid) }
-                }
-            }
-        }
-        return ids
     }
 
     static func selectedWindowIndexAfterCycling(_ step: Int) -> Int {
@@ -745,7 +718,7 @@ class Windows {
         let representative = TabGroups.groupId(of: wid).flatMap { TabGroups.representativeByGroup[$0] }
         surfaceRetirements.append(SurfaceRetirement(oldWid: wid, pid: window.application.pid,
             element: element, expiresAt: now + 2, focusedAt: window.focusedAt,
-            creationOrder: window.creationOrder, thumbnail: window.thumbnail, groupMembers: members,
+            creationOrder: window.creationOrder, groupMembers: members,
             groupRepresentative: representative,
             wasFocusedWindow: window.application.focusedWindow === window))
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -767,7 +740,6 @@ class Windows {
         let retirement = surfaceRetirements.remove(at: i)
         window.focusedAt = retirement.focusedAt
         window.creationOrder = retirement.creationOrder
-        window.thumbnail = retirement.thumbnail
         let newerFocusExists = list.contains { $0 !== window && $0.focusedAt > retirement.focusedAt }
         let restoreFocus = retirement.wasFocusedWindow && !newerFocusExists
             && window.application.focusedWindow == nil
@@ -788,22 +760,12 @@ class Windows {
     }
 
     static func removeWindows(_ windows: [Window], _ addWindowlessWindowIfNeeded: Bool) {
-        // Release any pooled TileView pinned to a window we're removing so its thumbnail
-        // IOSurface can deallocate now. Otherwise the layer.contents reference keeps the
-        // IOSurface alive until the next switcher show — which may be much later, and
-        // never if the user has already closed many windows in the background.
+        // Release any pooled TileView pinned to a window we're removing, so it drops its references now.
         // Match by Window identity (not cgWindowId) so windowless-app tiles aren't hit.
         for view in TilesView.recycledViews {
             if let win = view.window_, windows.contains(where: { $0 === win }) {
-                view.thumbnail.releaseImage()
                 view.appIcon.releaseImage()
                 view.window_ = nil
-            }
-        }
-        // Same for PreviewPanel: if the previewed window is being removed, drop its IOSurface.
-        for w in windows {
-            if let wid = w.cgWindowId {
-                PreviewPanel.clearIfShowing(wid)
             }
         }
         for w in windows {
@@ -832,25 +794,11 @@ class Windows {
             w.lastFocusOrder -= howManyToShift
             return false
         }
-        // Drop the cached `SCWindow` for any window we're removing. Otherwise the array
-        // grows over time as new shareable-content refreshes leave stale entries behind
-        // (see leak #5).
-        if #available(macOS 14.0, *) {
-            let removedWids = Set(windows.compactMap { $0.cgWindowId })
-            if !removedWids.isEmpty {
-                BackgroundWork.screenshotsQueue.addOperation {
-                    WindowCaptureScreenshots.cachedSCWindows.withLock { $0.removeAll { removedWids.contains($0.windowID) } }
-                }
-            }
-        }
         for w in windows {
             bumpAppWindowSetVersion(w.application.pid)
             if let wid = w.cgWindowId {
                 AXCallScheduler.shared.removeEntries(withPrefix: "wid-\(wid)-")
                 Applications.titleThrottler.removeEntry(withKey: "\(wid)-title")
-                // likewise both capture resolutions: the full-res Preview fetch keys on `preview-`
-                Applications.screenshotThrottler.removeEntry(withKey: "capture-wid-\(wid)")
-                Applications.screenshotThrottler.removeEntry(withKey: "preview-wid-\(wid)")
                 Applications.forgetTabRead(wid)
                 Applications.forgetAcquisitionFailure(wid)
             }

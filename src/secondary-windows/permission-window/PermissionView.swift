@@ -3,12 +3,11 @@ import Cocoa
 class PermissionView: StackView {
     static let greenColor = NSColor(srgbRed: 0.38, green: 0.75, blue: 0.33, alpha: 0.2)
     static let redColor = NSColor(srgbRed: 0.90, green: 0.35, blue: 0.32, alpha: 0.2)
-    static let yellowColor = NSColor(srgbRed: 0.83, green: 0.66, blue: 0.07, alpha: 0.2)
 
     var status: NSTextField!
     var permissionStatus = PermissionStatus.notGranted
 
-    convenience init(_ symbol: Symbols, _ title: String, _ justification: String, _ buttonText: String, _ buttonUrl: String, _ skipCheckbox: NSView? = nil) {
+    convenience init(_ symbol: Symbols, _ title: String, _ justification: String, _ buttonText: String, _ buttonUrl: String) {
         let iconImage = NSImage.fromSymbol(symbol, pointSize: 28)
         let icon = NSImageView(image: iconImage)
         if #available(macOS 10.14, *) { icon.contentTintColor = .systemBlue }
@@ -32,11 +31,7 @@ class PermissionView: StackView {
         let buttonStack = NSStackView(views: [button, status])
         buttonStack.translatesAutoresizingMaskIntoConstraints = false
         buttonStack.alignment = .centerY
-        var views = [titleStack, justification, buttonStack]
-        if let skipCheckbox {
-            views.append(skipCheckbox)
-        }
-        self.init(views, .vertical, top: GridView.interPadding, right: GridView.interPadding, bottom: GridView.interPadding, left: GridView.interPadding)
+        self.init([titleStack, justification, buttonStack], .vertical, top: GridView.interPadding, right: GridView.interPadding, bottom: GridView.interPadding, left: GridView.interPadding)
         self.status = status
         wantsLayer = true
         layer!.cornerRadius = GridView.interPadding / 2
@@ -56,9 +51,6 @@ class PermissionView: StackView {
             case .notGranted:
                 color = PermissionView.redColor
                 label = NSLocalizedString("Not allowed", comment: "")
-            case .skipped:
-                color = PermissionView.yellowColor
-                label = NSLocalizedString("Skipped", comment: "")
         }
         status.stringValue = "● " + label
         status.textColor = color.withAlphaComponent(1)
@@ -69,5 +61,4 @@ class PermissionView: StackView {
 enum PermissionStatus {
     case granted
     case notGranted
-    case skipped
 }

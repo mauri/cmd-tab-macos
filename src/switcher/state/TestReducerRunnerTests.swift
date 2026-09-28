@@ -15,7 +15,7 @@ final class TestReducerRunnerTests: XCTestCase {
             spaceIds: spaceIds, spaceIndexes: [], isOnAllSpaces: false, spaceIsBorrowed: spaceIsBorrowed,
             isFullscreen: false, isFullscreenMirrored: false, isMinimized: false, isMainWindow: false,
             isWindowlessApp: false, cgsPhantomLatch: false, lastFocusOrder: lastFocusOrder,
-            creationOrder: Int(wid), hasThumbnail: true)
+            creationOrder: Int(wid))
     }
 
     private func state(windows: [TrackedWindow], frontmostPid: pid_t? = 500) -> TrackedWindowState {
@@ -165,7 +165,7 @@ final class TestReducerRunnerTests: XCTestCase {
                 size: CGSize(width: 1440, height: 900), position: .zero, spaceIds: [100], spaceIndexes: [],
                 isOnAllSpaces: false, spaceIsBorrowed: false, isFullscreen: true, isFullscreenMirrored: false,
                 isMinimized: false, isMainWindow: false, isWindowlessApp: false, cgsPhantomLatch: false,
-                lastLeftSpaceId: nil, lastFocusOrder: 0, creationOrder: 5, hasThumbnail: true)),
+                lastLeftSpaceId: nil, lastFocusOrder: 0, creationOrder: 5)),
             .input(.discoveryLanded(wid: 5, accepted: true, newlyTracked: true, adoptedAsInactiveTab: false,
                                     queriedSpaceIds: [100], isOrderedIn: true, tabTitles: nil, tabGroupToken: nil)),
         ])
@@ -190,7 +190,7 @@ final class TestReducerRunnerTests: XCTestCase {
                 size: CGSize(width: 1440, height: 900), position: .zero, spaceIds: [space], spaceIndexes: [],
                 isOnAllSpaces: false, spaceIsBorrowed: false, isFullscreen: true, isFullscreenMirrored: false,
                 isMinimized: false, isMainWindow: false, isWindowlessApp: false, cgsPhantomLatch: false,
-                lastLeftSpaceId: nil, lastFocusOrder: focus, creationOrder: Int(wid), hasThumbnail: true)
+                lastLeftSpaceId: nil, lastFocusOrder: focus, creationOrder: Int(wid))
         }
         var s = TrackedWindowState()
         s.windows = [
@@ -238,7 +238,7 @@ final class TestReducerRunnerTests: XCTestCase {
             spaceIds: spaceIds, spaceIndexes: [], isOnAllSpaces: false, spaceIsBorrowed: borrowed,
             isFullscreen: fullscreen, isFullscreenMirrored: false, isMinimized: false, isMainWindow: false,
             isWindowlessApp: false, cgsPhantomLatch: false, lastLeftSpaceId: leftSpace, lastFocusOrder: focus,
-            creationOrder: Int(wid), hasThumbnail: true)
+            creationOrder: Int(wid))
     }
 
     /// A representative that goes Space-less must not borrow a Space that CONTRADICTS the one it just left.
@@ -333,7 +333,7 @@ final class TestReducerRunnerTests: XCTestCase {
                 spaceIds: [22], spaceIndexes: [], isOnAllSpaces: false, spaceIsBorrowed: false,
                 isFullscreen: true, isFullscreenMirrored: false, isMinimized: false, isMainWindow: false,
                 isWindowlessApp: false, cgsPhantomLatch: false, lastLeftSpaceId: nil, lastFocusOrder: 0,
-                creationOrder: 134, hasThumbnail: true)),
+                creationOrder: 134)),
             .input(.discoveryLanded(wid: 134, accepted: true, newlyTracked: true, adoptedAsInactiveTab: false,
                                     queriedSpaceIds: [22], isOrderedIn: true, tabTitles: nil, tabGroupToken: nil)),
         ])

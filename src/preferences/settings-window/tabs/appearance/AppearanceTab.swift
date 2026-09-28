@@ -388,7 +388,6 @@ class AppearanceTab: NSObject {
     static let labelSize = NSLocalizedString("Size", comment: "")
     static let labelTheme = NSLocalizedString("Theme", comment: "")
     static let labelShortcutStyle = NSLocalizedString("After keys are released", comment: "")
-    static let labelPreviewSelectedWindow = NSLocalizedString("Preview selected window", comment: "")
 
     static var customizeStyleButton: NSButton!
     static var animationsButton: NSButton!
@@ -497,7 +496,6 @@ class AppearanceTab: NSObject {
                 refreshAllOverrideInfoLabels()
             }), makeOverrideIcon("appearanceThemeOverride")])
         addAfterKeysReleasedRow(table)
-        addPreviewSelectedWindowRow(table)
         table.addRow(rightViews: customizeStyleButton)
         refreshAllOverrideInfoLabels()
         return table
@@ -604,15 +602,6 @@ class AppearanceTab: NSObject {
 
     static func refreshTrailingSegmentBadge(_ segmentedControl: NSSegmentedControl, proIndex: Int, overlay: ProBadgeView.SegmentOverlay) {
         ProBadgeView.refreshSelection(in: segmentedControl, proIndex: proIndex, overlay: overlay)
-    }
-
-    private static func addPreviewSelectedWindowRow(_ table: TableGroupView) {
-        let switchControl = LabelAndControl.makeSwitch("previewFocusedWindow", extraAction: { _ in
-            ControlsTab.syncOverrideControlsToGlobal()
-            refreshAllOverrideInfoLabels()
-        })
-        _ = table.addRow(leftText: AppearanceTab.labelPreviewSelectedWindow,
-            rightViews: [switchControl, makeOverrideIcon("previewFocusedWindowOverride")])
     }
 
     private static func makeMultipleScreensView() -> NSView {

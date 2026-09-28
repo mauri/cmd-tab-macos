@@ -269,13 +269,7 @@ enum WindowEventReducer {
                     // no change, and the MRU bump below — the only other repaint here — is gated on the
                     // window's app being frontmost, which it is not while our panel holds the key window.
                     // So the tile kept the indicator until the panel was closed and reopened.
-                    // No wids to re-capture HERE: the window comes back with the frame and content it had,
-                    // and the restore animation is still running, so a capture now grabs a partial frame —
-                    // the OS draws the window scaled down mid-animation, which lands in the switcher as a
-                    // mini window in a transparent tile. The capture is deferred to the end of the animation
-                    // instead, and every capture asked for meanwhile is held back with it.
                     effects.append(.refreshUi(wids: [], onlyWhileSwitcherOpen: true))
-                    effects.append(.deferCaptureUntilRestoreEnds(wid: wid))
                 }
                 // **An 815 is not a raise the user made.** It is emitted for every window of a Space being
                 // re-shown, for every window of an app being activated, and for a genuine Cmd+` alike, and
@@ -642,7 +636,7 @@ enum WindowEventReducer {
         }
         // Hold a backgrounding tab visible through the new-tab discovery gap (the kernel decides; see
         // `shouldHoldVisibleThroughDiscovery`). The derived `isPhantom` keeps a held wid non-phantom, so
-        // it shows its last thumbnail until the incoming tab's claim folds it in — a clean one-tile swap.
+        // it keeps its tile until the incoming tab's claim folds it in — a clean one-tile swap.
         if !added,
            TabGroupResolver.shouldHoldVisibleThroughDiscovery(
                isTabbed: isTabbedBefore,
@@ -740,13 +734,10 @@ enum WindowEventReducer {
             let previousRepWid = state.groups.groupId(of: wid)
                 .flatMap { state.groups.representativeByGroup[$0] }
             effects.append(contentsOf: state.setGroupRepresentative(wid, reason: "joinedSpace").logs.map { .log($0) })
-            // Hand the incoming tab what it needs to be DRAWN as the group's tile — above all the outgoing
-            // tab's pixels, until its own capture lands. The swap is atomic and immediate, but this borrow
-            // used to happen only inside `reconcile`, which this path does not always reach: the tile
-            // therefore fell back to the app ICON for a beat (`TileView` draws it whenever `thumbnail ==
-            // nil`), which is the "screenshot → app icon → screenshot" flicker in its reused-wid form.
+            // Hand the incoming tab what it needs to be DRAWN as the group's tile. The swap is atomic and
+            // immediate, and `reconcile`, which also does this, is not always reached from this path.
             if let gid = state.groups.groupId(of: wid), let members = state.groups.membersByGroup[gid] {
-                showAsGroupRepresentative(&state, repWid: wid, memberWids: members, into: &effects)
+                showAsGroupRepresentative(&state, repWid: wid, memberWids: members)
             }
             if let previousRepWid, previousRepWid != wid {
                 // Refresh both frames from the WindowServer before the first verdict: a background tab
@@ -824,11 +815,7 @@ enum WindowEventReducer {
                 .refreshUi(wids: widsOnVisibleSpaces(state), onlyWhileSwitcherOpen: false)]
     }
 
-    /// The windows a Space switch gives a reason to recapture: the ones on a Space now on screen. Every
-    /// capture costs the OS three signature validations in its permission service (~39ms of its CPU per
-    /// capture, measured on macOS 27), and recapturing every window on every switch is enough on a busy
-    /// desktop to exhaust that service and make macOS ask for Screen Recording again (#6025, #6067). Windows
-    /// elsewhere keep their thumbnail until they are focused or the switcher opens, which recaptures them all.
+    /// The windows whose tiles a Space switch can change: the ones on a Space now on screen.
     /// `visibleSpaces` is already current (the leading edge re-read it); membership is read before this pass's
     /// own sync lands, which is fine since a Space switch does not move windows between Spaces.
     private static func widsOnVisibleSpaces(_ state: TrackedWindowState) -> [CGWindowID] {
@@ -960,10 +947,9 @@ enum WindowEventReducer {
             state.recentlyCreated.remove(wid)
             if let at = promotedTab {
                 effects.append(contentsOf: applyFocusAndBump(&state, wid: wid, at: at, .structuralRepair))
-                // The minted tab inherits the outgoing one's pixels, or the tile draws the app icon until its
-                // own capture lands (`checkNoIconFlash`).
+                // The minted tab inherits the outgoing one's Space if it lost its own.
                 if let gid = state.groups.groupId(of: wid), let members = state.groups.membersByGroup[gid] {
-                    showAsGroupRepresentative(&state, repWid: wid, memberWids: members, into: &effects)
+                    showAsGroupRepresentative(&state, repWid: wid, memberWids: members)
                 }
             }
             // Seed the ordered-in bit from the same WindowServer row this discovery was discriminated on.
@@ -1090,13 +1076,12 @@ enum WindowEventReducer {
                 effects.append(.queryWindowServerState(wids: [wid] + members))
                 // ...and give it the standing to KEEP that. A mint arrives with no focus history at all, and
                 // `normalizeGroupVisibility` re-elects by recency on the very next pass — handing the group
-                // straight back to a background tab that does have some, whose missing thumbnail then draws
-                // as an app icon. Naming it representative without this is undone before anything is shown.
+                // straight back to a background tab that does have some. Naming it representative without this is undone before anything is shown.
                 // Structural: the window did not change, only which wid stands for it.
                 effects.append(contentsOf: applyFocusAndBump(&state, wid: wid, at: state.now,
                     .structuralRepair))
                 if let gid = state.groups.groupId(of: wid), let all = state.groups.membersByGroup[gid] {
-                    showAsGroupRepresentative(&state, repWid: wid, memberWids: all, into: &effects)
+                    showAsGroupRepresentative(&state, repWid: wid, memberWids: all)
                 }
             }
         }
@@ -1111,10 +1096,9 @@ enum WindowEventReducer {
         if newlyTracked, justCreated, !adoptedAsInactiveTab, let gid = state.groups.groupId(of: wid),
            state.window(wid)?.spaceIds.isEmpty == false {
             effects.append(contentsOf: applyFocusAndBump(&state, wid: wid, at: state.now, .structuralRepair))
-            // Hand it the outgoing tab's pixels in the same pass, or the tile draws the app icon for a beat
-            // while its own capture lands — the flash `checkNoIconFlash` exists to catch.
+            // Hand it the outgoing tab's Space in the same pass, if it lost its own.
             if let members = state.groups.membersByGroup[gid] {
-                showAsGroupRepresentative(&state, repWid: wid, memberWids: members, into: &effects)
+                showAsGroupRepresentative(&state, repWid: wid, memberWids: members)
             }
         }
         if newlyTracked {
@@ -1617,7 +1601,7 @@ enum WindowEventReducer {
                 effects.append(contentsOf: state.removeFromGroup(wid, reason: "leftFullscreenGroup").map { .log($0) })
             }
             effects.append(contentsOf: state.setGroupRepresentative(repWid, reason: "normalize").logs.map { .log($0) })
-            showAsGroupRepresentative(&state, repWid: repWid, memberWids: wids, into: &effects)
+            showAsGroupRepresentative(&state, repWid: repWid, memberWids: wids)
             // Every member of a group is a tab of ONE window, so they share its Space. Geometry backfills the
             // members IT saw, but membership can also come from AX titles or the minted-switch handover, and
             // those members were left Space-less until some later pass happened to re-run geometry over them
@@ -1637,19 +1621,15 @@ enum WindowEventReducer {
     }
 
     /// Make the representative presentable as the tile its group shows (its `isTabbed` already derives to
-    /// false from being the representative). Two facts that would blank the tile mid-transition are borrowed
-    /// from its siblings (all tabs of one window, so the facts are interchangeable):
-    /// - a Space, when it lost its own while backgrounding — else Space-based display (which Space number the
-    ///   tile shows, screen attribution) is wrong for the discovery gap;
-    /// - a thumbnail, when it's freshly active and its own capture hasn't landed — else the tile flashes the
-    ///   app icon (`TileView` renders the icon exactly when `thumbnail == nil`). The pixels move in the shell
-    ///   (`ReducerEffect.copyThumbnail`); the state only tracks that a thumbnail now exists.
+    /// false from being the representative). A Space is borrowed from its siblings (all tabs of one window, so
+    /// the fact is interchangeable) when it lost its own while backgrounding — else Space-based display (which
+    /// Space number the tile shows, screen attribution) is wrong for the discovery gap.
     /// The CGS phantom latch is dropped: a verdict taken while this tab was mid-transition must not outlive
     /// the group (the derived group-member exemption covers it only while it stays grouped).
     /// `memberWids` is the group's PRE-shrink member list — sources are looked up against the CURRENT state,
     /// exactly like the live code's lazy reads over its pre-shrink `members` array.
     private static func showAsGroupRepresentative(_ state: inout TrackedWindowState, repWid: CGWindowID,
-                                                  memberWids: [CGWindowID], into effects: inout [ReducerEffect]) {
+                                                  memberWids: [CGWindowID]) {
         guard let ri = state.windowIndex(repWid) else { return }
         // Never borrow a Space that CONTRADICTS the representative's own history. Requiring a genuine source
         // was tried and is too strict — every tab of a windowed window carries a borrowed Space, and refusing
@@ -1670,12 +1650,6 @@ enum WindowEventReducer {
             state.windows[ri].spaceIsBorrowed = true
         }
         state.windows[ri].cgsPhantomLatch = false
-        if !state.windows[ri].hasThumbnail,
-           let src = memberWids.compactMap({ state.window($0) }).first(where: { $0.hasThumbnail }),
-           let srcWid = src.wid {
-            state.windows[ri].hasThumbnail = true
-            effects.append(.copyThumbnail(from: srcWid, to: repWid))
-        }
     }
 
     /// Inactive tabs share their parent window's frame, so an inactive tab is fullscreen/minimized exactly

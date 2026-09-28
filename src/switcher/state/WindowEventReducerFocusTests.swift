@@ -18,7 +18,7 @@ final class WindowEventReducerFocusTests: XCTestCase {
             spaceIds: [4], spaceIndexes: [1], isOnAllSpaces: false, spaceIsBorrowed: false,
             isFullscreen: false, isFullscreenMirrored: false, isMinimized: isMinimized, isMainWindow: false,
             isWindowlessApp: false, cgsPhantomLatch: false, lastFocusOrder: order,
-            creationOrder: Int(wid), hasThumbnail: true)
+            creationOrder: Int(wid))
     }
 
     /// Finder frontmost with its window in front, REAPER's main window behind it — the state the capture

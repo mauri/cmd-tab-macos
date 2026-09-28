@@ -2,8 +2,7 @@ import CoreGraphics
 
 /// Reads which gesture is up from the window manager's own overlays, recognised by OWNER, LEVEL and SIZE
 /// rather than by name. `kCGWindowName` would name them outright (`ExposeShieldWindow`, `Spaces Bar`,
-/// `ShowDesktopOverlay`) but it is gated on Screen Recording, which a user running without thumbnails may
-/// never have granted, and a detector that reads "no gesture is ever up" for those users is worse than
+/// `ShowDesktopOverlay`) but it is gated on Screen Recording, which AltTab does not ask for, and a detector that reads "no gesture is ever up" for those users is worse than
 /// none. Owner name, level and bounds are not gated. Its Stage Manager and highlight surfaces are at 0 to 2.
 enum MissionControlOverlay {
     struct Surface {

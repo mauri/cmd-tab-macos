@@ -335,14 +335,6 @@ listing, because they were all the same mistake — asserting something the OS n
 The last three each produced failures that looked exactly like app bugs — a window hidden, a focus signal
 suppressed — and in every case the app was doing the right thing with a lie. **Rule out the model first.**
 
-## The icon flash — a defect no other check could see
-
-`TileView` draws the app icon exactly when `thumbnail == nil`, so a tile handed to a wid whose capture hasn't
-landed FLASHES: screenshot → app icon → screenshot. The tile never disappears, every count stays right, and
-convergence holds — so nothing in this suite noticed. The model now tracks thumbnails (a new window arrives
-with none; captures land as their own read unit) and `checkNoIconFlash` asserts a window never shows a wid
-with no pixels while a sibling still has some. It caught the live report on the first generator sweep.
-
 ## The two arms of `pendingGroupInheritance` are NOT redundant (measured 2026-07-27)
 
 Group inheritance for a minted tab switch is armed from two places, and they read as duplicates: the hold

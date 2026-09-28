@@ -235,7 +235,7 @@ final class CoalescedWorkTests: XCTestCase {
             spaceIds: [1], spaceIndexes: [1], isOnAllSpaces: false, spaceIsBorrowed: false,
             isFullscreen: false, isFullscreenMirrored: false, isMinimized: false, isMainWindow: true,
             isWindowlessApp: false, cgsPhantomLatch: false, lastFocusOrder: 0,
-            creationOrder: 0, hasThumbnail: true)
+            creationOrder: 0)
         window.isOrderedIn = visible
         state.windows = [window]
         state.apps[42] = TrackedApp(state: ApplicationState(pid: 42, bundleIdentifier: "test.app",

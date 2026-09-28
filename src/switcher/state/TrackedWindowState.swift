@@ -124,9 +124,6 @@ struct TrackedWindow: Equatable {
     /// Never assign it to express a focus; call `noteFocus`.
     var lastFocusOrder = 0
     var creationOrder = 0
-    /// whether a thumbnail exists (the reducer decides thumbnail BORROWING between siblings; the pixels stay
-    /// in the shell — `ReducerEffect.copyThumbnail`)
-    var hasThumbnail = false
     var lifecycle = WindowLifecycleState.alive
 
     /// The STORED kernel record: `isPhantom` carries the CGS latch and `isTabbed` the dead stored value,
@@ -992,11 +989,6 @@ enum ReducerEffect: Equatable {
     /// Preserve a short semantic shell before a WindowServer surface is removed. It may be transferred only
     /// to a new wid whose AX element is explicitly equal.
     case retireSurface(CGWindowID)
-    /// copy a sibling's thumbnail onto a freshly-active representative (the app-icon-gap placeholder)
-    case copyThumbnail(from: CGWindowID, to: CGWindowID)
-    /// hold every capture of this window until its restore animation is over, then take one
-    /// (`WindowThumbnails.deferCaptureUntilRestoreEnds`)
-    case deferCaptureUntilRestoreEnds(wid: CGWindowID)
     /// re-arm the hold-release re-check (`checkHoldRelease`'s 0.4s timer)
     case scheduleHoldReleaseCheck(wid: CGWindowID, attempt: Int)
     /// re-arm the drag-out re-check (`checkDragOut`'s 0.4s timer)

@@ -23,7 +23,7 @@ final class WindowEventReducerPhantomTests: XCTestCase {
             spaceIds: [1], spaceIndexes: [1], isOnAllSpaces: false, spaceIsBorrowed: false,
             isFullscreen: false, isFullscreenMirrored: false, isMinimized: false, isMainWindow: false,
             isWindowlessApp: false, cgsPhantomLatch: latchedPhantom, isOrderedIn: isOrderedIn,
-            lastFocusOrder: lastFocusOrder, creationOrder: 1, hasThumbnail: true)
+            lastFocusOrder: lastFocusOrder, creationOrder: 1)
     }
 
     /// Another app's window, so the MRU has somewhere to shift a bump to (`applyFocusAndBump` is a no-op on
@@ -34,7 +34,7 @@ final class WindowEventReducerPhantomTests: XCTestCase {
             spaceIds: [1], spaceIndexes: [1], isOnAllSpaces: false, spaceIsBorrowed: false,
             isFullscreen: false, isFullscreenMirrored: false, isMinimized: false, isMainWindow: false,
             isWindowlessApp: false, cgsPhantomLatch: false, lastFocusOrder: order,
-            creationOrder: 2, hasThumbnail: true)
+            creationOrder: 2)
     }
 
     private func state(_ windows: [TrackedWindow], appIsActive: Bool = false) -> TrackedWindowState {

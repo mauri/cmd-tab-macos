@@ -400,7 +400,6 @@ final class AppearancePane {
         AppearanceTab.labelSize,
         AppearanceTab.labelTheme,
         AppearanceTab.labelShortcutStyle,
-        AppearanceTab.labelPreviewSelectedWindow,
         ProBadgeView.proLabel,
     ] + AppearanceStylePreference.allCases.map { $0.localizedString }
       + AppearanceSizePreference.allCases.map { $0.localizedString }
@@ -412,7 +411,6 @@ final class AppearancePane {
     private let size: ShortcutOverrideSegmented
     private let theme: ShortcutOverrideSegmented
     private let shortcutStyle: ShortcutOverrideSegmented
-    private let preview: ShortcutOverrideSwitch
 
     init(width: CGFloat) {
         let onChange: () -> Void = {
@@ -461,11 +459,6 @@ final class AppearancePane {
             },
             onChange: onChange)
 
-        preview = ShortcutOverrideSwitch(
-            baseName: "previewFocusedWindowOverride",
-            globalValue: { Preferences.previewSelectedWindow },
-            onChange: onChange)
-
         let table = TableGroupView(width: width)
         let styleRow = NSStackView(views: [style.stack, style.unlink])
         styleRow.orientation = .horizontal
@@ -475,7 +468,6 @@ final class AppearancePane {
         table.addRow(leftText: AppearanceTab.labelSize, rightViews: [size.segmented, size.unlink])
         table.addRow(leftText: AppearanceTab.labelTheme, rightViews: [theme.segmented, theme.unlink])
         table.addRow(leftText: AppearanceTab.labelShortcutStyle, rightViews: [shortcutStyle.segmented, shortcutStyle.unlink])
-        table.addRow(leftText: AppearanceTab.labelPreviewSelectedWindow, rightViews: [preview.toggle, preview.unlink])
         view = table
     }
 
@@ -484,7 +476,6 @@ final class AppearancePane {
         size.bind(toShortcut: index)
         theme.bind(toShortcut: index)
         shortcutStyle.bind(toShortcut: index)
-        preview.bind(toShortcut: index)
     }
 }
 
@@ -735,39 +726,6 @@ final class ShortcutOverrideRadios: ShortcutOverrideBinding {
             unlink.isHidden = false
             notifyChanged()
         }
-    }
-}
-
-/// Switch bound to a per-shortcut override preference. Used for "Preview selected window".
-final class ShortcutOverrideSwitch: ShortcutOverrideBinding {
-    let toggle: Switch
-
-    private let globalValue: () -> Bool
-
-    init(baseName: String, globalValue: @escaping () -> Bool, onChange: (() -> Void)?) {
-        self.globalValue = globalValue
-        toggle = LabelAndControl.makeSwitch(Preferences.indexToName(baseName, 0), extraAction: nil)
-        super.init(baseName: baseName, onChange: onChange)
-        let weakSelf = WeakRef(self)
-        toggle.onAction = { c in
-            weakSelf.value?.handleToggle(c as! Switch)
-        }
-    }
-
-    override func render() {
-        toggle.identifier = NSUserInterfaceItemIdentifier(key)
-        toggle.setSilently((hasOverride ? CachedUserDefaults.bool(key) : globalValue()) ? .on : .off)
-    }
-
-    override func renderGlobal() {
-        toggle.setSilently(globalValue() ? .on : .off)
-    }
-
-    private func handleToggle(_ control: Switch) {
-        // Toggling always changes state — always write the override.
-        Preferences.set(key, control.state == .on ? "true" : "false")
-        unlink.isHidden = false
-        notifyChanged()
     }
 }
 

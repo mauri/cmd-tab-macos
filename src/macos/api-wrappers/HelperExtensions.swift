@@ -278,10 +278,10 @@ extension NSTextView {
 }
 
 extension NSPanel {
-    /// The chrome AltTab's two floating panels (the switcher and the window preview) share.
+    /// The chrome of AltTab's floating panels.
     /// `.canJoinAllSpaces` matters because triggering AltTab before or during a Space transition
     /// otherwise only brings the panel over once the transition ends. The `.unknown` accessibility
-    /// subrole is what keeps these panels out of AltTab's own thumbnails.
+    /// subrole is what keeps these panels out of AltTab's own window list.
     func applyFloatingPanelChrome() {
         isFloatingPanel = true
         animationBehavior = .none

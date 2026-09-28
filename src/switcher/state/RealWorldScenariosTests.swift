@@ -50,14 +50,13 @@ final class RealWorldScenariosTests: XCTestCase {
         /// (`spaceIds` overrides the raw value when the model held a backfilled/borrowed Space at the
         /// fixture's starting instant).
         func modelWindow(spaceIds: [UInt64]? = nil, spaceIsBorrowed: Bool = false,
-                         isFullscreenMirrored: Bool = false, lastFocusOrder: Int = 0,
-                         hasThumbnail: Bool = true) -> TrackedWindow {
+                         isFullscreenMirrored: Bool = false, lastFocusOrder: Int = 0) -> TrackedWindow {
             TrackedWindow(id: "wid-\(wid)", wid: wid, pid: pid, title: title, size: size, position: position,
                 spaceIds: spaceIds ?? self.spaceIds, spaceIndexes: [], isOnAllSpaces: false,
                 spaceIsBorrowed: spaceIsBorrowed, isFullscreen: isFullscreen,
                 isFullscreenMirrored: isFullscreenMirrored, isMinimized: isMinimized, isMainWindow: false,
                 isWindowlessApp: false, cgsPhantomLatch: false, lastFocusOrder: lastFocusOrder,
-                creationOrder: Int(wid), hasThumbnail: hasThumbnail)
+                creationOrder: Int(wid))
         }
     }
 
@@ -542,7 +541,7 @@ final class RealWorldScenariosTests: XCTestCase {
                 position: c.position, spaceIds: c.spaceIds, spaceIndexes: [], isOnAllSpaces: false,
                 spaceIsBorrowed: false, isFullscreen: false, isFullscreenMirrored: false, isMinimized: false,
                 isMainWindow: false, isWindowlessApp: false, cgsPhantomLatch: false, lastFocusOrder: i,
-                creationOrder: Int(c.wid), hasThumbnail: true)
+                creationOrder: Int(c.wid))
         }
         s.apps[1357] = TrackedApp(state: ApplicationState(pid: 1357, bundleIdentifier: "com.apple.finder",
             localizedName: "Finder", isHidden: false), isActive: true)

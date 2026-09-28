@@ -26,8 +26,6 @@ If a git worktree has no `config/local.xcconfig`, copy it from the main checkout
 
 This Mac runs macOS 14.6, so the newest Xcode it can run is Xcode 16.2 (Swift 6.0, macOS 15 SDK). Code that needs the macOS 26 SDK is behind `#if compiler(>=6.2)`, so an Xcode 26 build keeps it. Set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` if `xcode-select` points to the Command Line Tools.
 
-Until the "Local Self-Signed" certificate is in the keychain, add `CODE_SIGNING_ALLOWED=NO` to the commands in `ai/build.sh` and `ai/test.sh`. The app build then fails only at the "Copy Sparkle Helpers" step, after the Swift compile and the link succeed. Phase 5 removes that step.
-
 When a deleted enum case or type breaks the build, use the compiler errors as the list of call sites to fix. Do not search for call sites by hand first.
 
 ## Phase 1: lock the style to Titles
@@ -61,15 +59,17 @@ Edit these files:
 - `src/switcher/state/Window.swift`, `Windows.swift`, `TrackedWindowState.swift`, and `TrackedWindowStateBridge.swift`: remove the thumbnail fields and the refresh calls.
 - `src/App.swift`, `src/switcher/SwitcherSession.swift`, and `src/events/ScreenLockEvents.swift`: remove the calls to the thumbnail and preview code.
 - `src/macos/api-wrappers/SkyLight.framework.swift`: remove the window capture declarations.
+- `config/base.xcconfig`: remove the `-weak_framework ScreenCaptureKit` linker flag.
 - `src/switcher/Appearance.swift`: delete `thumbnailsSize`, `appIconsSize`, `hideThumbnails`, and the style branches in `applyConcreteSize` and `updateFont`. Keep the values from `titlesSize`.
-- `src/preferences/MacroPreferences.swift`: remove the `.thumbnails` and `.appIcons` cases from `AppearanceStylePreference`. Then remove the whole enum when nothing uses it.
+- Keep `AppearanceStylePreference` in this phase. The Pro code and the appearance settings still use it. Remove the enum in Phase 6, after its last users are gone.
 
 Simplify the switcher views in `src/switcher/main-window/`:
 
 - `TileView.swift` has 14 style checks. Keep only the row layout for `.titles`.
 - `TilesView.swift` has 6 style checks. Keep one column with one row per window.
 - `TileFontIconView.swift`, `TileOverView.swift`, `TileTitleView.swift`, and `TilesPanelBackgroundView.swift`: remove the other style branches.
-- `TileGridLayout.swift`: replace the grid with a plain vertical stack if the one-column case is simple enough. Otherwise keep it as it is.
+- The traffic-light window controls in `TileOverView.swift` show only in the Thumbnails style. Remove them in this phase, with `src/kit/TrafficLightButton.swift`.
+- Keep `TileGridLayout.swift`. A Titles row is 90% of the panel width, so the grid already puts one tile per row, and the arrow keys use its rows.
 
 Remove the Screen Recording permission:
 
@@ -121,7 +121,7 @@ Window actions inside the switcher:
 
 - `closeWindowShortcut`, `minDeminWindowShortcut`, `toggleFullscreenWindowShortcut`, `quitAppShortcut`, and `hideShowAppShortcut` in `Preferences.swift`
 - `src/switcher/ShortcutAction.swift` cases for these actions
-- `src/switcher/main-window/StatusIconsView.swift` and `src/kit/TrafficLightButton.swift`
+- `src/switcher/main-window/StatusIconsView.swift`
 
 Extra shortcuts:
 

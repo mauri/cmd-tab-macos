@@ -7,7 +7,7 @@ import Cocoa
 ///
 /// The per-window half of that is ONE value, not a field list: a live `Window` holds its `TrackedWindow`
 /// (`Window.tracked`), so snapshot reads it and apply hands the reduced one back whole. Everything else on
-/// `Window` (thumbnail pixels, AX element, screenId…) stays shell-owned and is touched through effects.
+/// `Window` (AX element, screenId…) stays shell-owned and is touched through effects.
 class TrackedWindowStateBridge {
     /// Orchestration state with no live-model home — the activation entries, the handover halves, the
     /// off-screen set. Parked here between dispatches, as ONE value: this used to be a field-per-static, and
@@ -188,7 +188,6 @@ class TrackedWindowStateBridge {
                 if let w = Windows.byWindowId[wid] {
                     w.application.focusedWindow = w
                     App.checkIfShortcutsShouldBeDisabled(w, nil)
-                    WindowThumbnails.captureFocusedInBackground(w)
                 }
             case .refreshUi(let wids, let onlyWhileSwitcherOpen):
                 if !onlyWhileSwitcherOpen || SwitcherSession.isActive {
@@ -202,12 +201,6 @@ class TrackedWindowStateBridge {
                 Applications.reconcileAxElementEnd(wid)
             case .retireSurface(let wid):
                 Windows.retireSurfaceForReplacement(wid)
-            case .deferCaptureUntilRestoreEnds(let wid):
-                if let w = Windows.byWindowId[wid] { WindowThumbnails.deferCaptureUntilRestoreEnds(w) }
-            case .copyThumbnail(let from, let to):
-                if let src = Windows.byWindowId[from], let dst = Windows.byWindowId[to], dst.thumbnail == nil {
-                    dst.thumbnail = src.thumbnail
-                }
             case .scheduleHoldReleaseCheck(let wid, let attempt):
                 WindowServerEvents.armHoldReleaseCheck(wid, attempt: attempt)
             case .scheduleDragOutCheck(let wid, let previousRepWid, let attempt):

@@ -156,10 +156,8 @@ final class SearchDiscoveryHint {
                                  maxCornerRadius: Appearance.windowCornerRadius)
         background.updateAppearance(cornerRadius: panel.cornerRadius)
         panel.hasShadow = Appearance.enablePanelShadow
-        let preview = PreviewPanel.shared
         return SearchDiscoveryPolicy.frame(size: size, switcher: TilesPanel.shared.frame,
-                                           visibleScreen: screen.visibleFrame,
-                                           obstruction: preview?.isVisible == true ? preview?.frame : nil)
+                                           visibleScreen: screen.visibleFrame, obstruction: nil)
     }
 
     /// The switcher's own kind of background, so the hint reads as part of it. Rebuilt when that kind

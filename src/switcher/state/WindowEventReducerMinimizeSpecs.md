@@ -103,11 +103,6 @@ Mirrors `WindowEventReducerMinimizeTests.swift` 1:1.
   supplies one — see below.
 - **testAnOrderInThatIsNotAnUnMinimizeRepaintsNothing** — the counterfactual that keeps it narrow: a Space
   switch orders in every window it brings back, and none of those tiles changed.
-- **testUnMinimizingHoldsCapturesUntilTheRestoreAnimationEnds** — the tile's other defect from the same
-  press: mid-animation the OS draws the window scaled down, so the re-capture the un-minimize sets off
-  returns a mini window in a transparent frame. The wid goes to the shell to be held back.
-- **testAnOrderInThatIsNotAnUnMinimizeHoldsNoCapture** — the matching counterfactual: a window merely brought
-  back on screen was never scaled down, and holding its captures would only delay a correct screenshot.
 
 ### D. The group half
 

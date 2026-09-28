@@ -26,7 +26,6 @@ class App: AppCenterApplication {
     static var supportProjectAction: Selector { #selector(App.supportProject) }
     static var upgradeToProAction: Selector { #selector(App.upgradeToPro) }
     static var openAccountAction: Selector { #selector(App.openAccount) }
-    static var isTerminating = false
     private static var isVeryFirstSummon = true
     /// How long the panel waits for the launch inventory when the very first summon arrives before it
     /// (`showUiOrCycleSelection`). One inventory lands ~280ms after it is asked for, measured.
@@ -70,15 +69,15 @@ class App: AppCenterApplication {
         App.shared.terminate(nil)
     }
 
-    static func hideUi(_ keepPreview: Bool = false) {
-        guard beginHideUi(keepPreview) else { return }
+    static func hideUi() {
+        guard beginHideUi() else { return }
         endHideUi()
     }
 
     /// The part of the dismissal the user can see. `focusSelectedWindow` runs it before asking for the
     /// focus, so the two things the user is waiting for are both out before any bookkeeping.
     /// Returns false when the switcher was already hidden.
-    private static func beginHideUi(_ keepPreview: Bool) -> Bool {
+    private static func beginHideUi() -> Bool {
         MainThreadStall.step()
         Logger.debug { "active:\(SwitcherSession.isActive)" }
         guard SwitcherSession.current != nil else { return false } // already hidden
@@ -89,9 +88,6 @@ class App: AppCenterApplication {
         // that whole second (QA DB-02).
         Applications.dockBadgeThrottler.reset()
         hideTilesPanelWithoutChangingKeyWindow()
-        if !keepPreview {
-            PreviewPanel.hide()
-        }
         return true
     }
 
@@ -294,7 +290,7 @@ class App: AppCenterApplication {
 
     static func focusSelectedWindow(_ selectedWindow: Window?) {
         MainThreadStall.step()
-        guard beginHideUi(true) else { return } // already hidden
+        guard beginHideUi() else { return } // already hidden
         let missionControl = MissionControl.state()
         if let window = selectedWindow, missionControl == .inactive || missionControl == .showDesktop {
             window.focus()
@@ -302,8 +298,6 @@ class App: AppCenterApplication {
                 Preferences.cursorFollowFocus == .differentScreen && (Spaces.screenSpacesMap.first { $0.value.contains { space in window.spaceIds.contains(space) } })?.key != NSScreen.active()?.cachedUuid()) {
                 moveCursorToSelectedWindow(window)
             }
-        } else {
-            PreviewPanel.hide()
         }
         endHideUi()
     }
@@ -315,9 +309,8 @@ class App: AppCenterApplication {
         CGWarpMouseCursorPosition(point)
     }
 
-    static func refreshOpenUiAfterExternalEvent(_ windowsToScreenshot: [Window], windowRemoved: Bool = false,
+    static func refreshOpenUiAfterExternalEvent(_ changedWindows: [Window], windowRemoved: Bool = false,
                                               immediately: Bool = false) {
-        WindowThumbnails.refreshAsync(windowsToScreenshot, .refreshUiAfterExternalEvent, windowRemoved: windowRemoved)
         let repaint = {
             guard SwitcherSession.isActive else { return }
             if !Windows.updatesBeforeShowing() { hideUi(); return }
@@ -343,8 +336,6 @@ class App: AppCenterApplication {
         TilesPanel.shared.updateContents(preservedScrollOrigin)
         guard SwitcherSession.isActive else { return }
         Windows.voiceOverWindow() // at this point TileViews are assigned to the window, and ready
-        guard SwitcherSession.isActive else { return }
-        WindowThumbnails.previewSelectedIfNeeded()
         guard SwitcherSession.isActive else { return }
         Applications.refreshBadgesAsync()
     }
@@ -428,15 +419,10 @@ class App: AppCenterApplication {
         refreshUi()
         guard SwitcherSession.isActive else { return }
         TilesPanel.shared.show()
-        WindowThumbnails.previewSelectedIfNeeded()
-        // enqueue the full-res Preview fetches BEFORE the thumbnail pass below, so the Preview sharpens first
-        WindowThumbnails.fetchPreviewFrames()
         if TilesView.isSearchEditing {
             TilesView.enableSearchEditing()
         }
         KeyRepeatTimer.startRepeatingKeyNextWindow()
-        let prioritizedIds = TilesView.windowIdsInViewport()
-        WindowThumbnails.refreshAsync(Windows.list, .refreshOnlyThumbnailsAfterShowUi, prioritizedIds: prioritizedIds)
     }
 
     static func checkIfShortcutsShouldBeDisabled(_ activeWindow: Window?, _ activeApp: Application?) {
@@ -480,12 +466,10 @@ class App: AppCenterApplication {
         BackgroundWork.start()
         NSScreen.updatePreferred()
         Appearance.update()
-        TilesPanel.updateMaxPossibleThumbnailSize()
         TilesPanel.updateMaxPossibleAppIconSize()
         Menubar.initialize()
         MainMenu.create()
         _ = TilesPanel()
-        _ = PreviewPanel()
         Spaces.refresh()
         Screens.refresh()
         ScreensEvents.observe()
@@ -563,7 +547,7 @@ extension App: NSApplicationDelegate {
         Logger.info { "Launching AltTab \(App.version)" }
         // Create the background queues first, before anything that can pump the main run loop re-entrantly
         // (the "move to /Applications" modal below, the WindowServer tap's discovery). Window.init reads
-        // BackgroundWork.screenshotsQueue (an implicitly-unwrapped optional) via Application.fetchAppIcon, so
+        // BackgroundWork.appIconsQueue (an implicitly-unwrapped optional) via Application.fetchAppIcon, so
         // if a queued discovery block drains re-entrantly before this runs, it traps on the nil queue (#5819).
         // preStart just allocates queues and depends on nothing, so it's safe at the very top.
         BackgroundWork.preStart()
@@ -664,13 +648,7 @@ extension App: NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         Logger.info { "" }
-        makeSureAllCapturesAreFinished()
         StapledTicket.restoreBeforeExit()
         return .terminateNow
     }
-}
-
-enum RefreshCausedBy {
-    case refreshOnlyThumbnailsAfterShowUi
-    case refreshUiAfterExternalEvent
 }

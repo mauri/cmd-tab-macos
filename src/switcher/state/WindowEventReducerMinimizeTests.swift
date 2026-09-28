@@ -18,7 +18,7 @@ final class WindowEventReducerMinimizeTests: XCTestCase {
             spaceIds: spaceIds, spaceIndexes: [1], isOnAllSpaces: false, spaceIsBorrowed: false,
             isFullscreen: false, isFullscreenMirrored: false, isMinimized: isMinimized, isMainWindow: false,
             isWindowlessApp: false, cgsPhantomLatch: false, lastFocusOrder: order,
-            creationOrder: Int(wid), hasThumbnail: true)
+            creationOrder: Int(wid))
     }
 
     /// The reporter's desktop: two Chrome windows and a Finder window on one Space, Chrome frontmost.
@@ -158,28 +158,6 @@ final class WindowEventReducerMinimizeTests: XCTestCase {
         runner.perform(.input(.windowOrderedIn(wid: Self.siblingWid, now: 6.0, inSpaceTransition: false)))
         XCTAssertEqual(runner.refreshes.count, repaintsBeforeTheReShow,
             "nothing about the tile changed, so nothing repaints: \(runner.refreshes)")
-    }
-
-    /// Reported 2026-08-06, the other half of that same "m" press: the restored window's tile turned into a
-    /// mini window floating in transparent pixels. The OS draws a window scaled down for the whole restore
-    /// animation, and the un-minimize is precisely what sets off a re-capture, so the fresh screenshot is a
-    /// partial frame that replaces a correct one. The reducer hands the shell the wid to hold back.
-    func testUnMinimizingHoldsCapturesUntilTheRestoreAnimationEnds() {
-        let runner = TestReducerRunner(initial: desktop(frontmost: Self.finderPid))
-        runner.run([.input(.windowOrderedOut(wid: Self.restoredWid, inSpaceTransition: false)),
-                    .input(.windowServerStateRead([snapshot(Self.restoredWid, isMinimized: true)]))])
-        runner.perform(.input(.windowOrderedIn(wid: Self.restoredWid, now: 6.0, inSpaceTransition: false)))
-        XCTAssertEqual(runner.deferredCaptures, [Self.restoredWid],
-            "the restored window's captures must wait for its animation: \(runner.deferredCaptures)")
-    }
-
-    /// Same counterfactual as the repaint above: a window the OS merely brings back on screen was never
-    /// scaled down, so holding its captures would only delay a correct screenshot.
-    func testAnOrderInThatIsNotAnUnMinimizeHoldsNoCapture() {
-        let runner = TestReducerRunner(initial: desktop(frontmost: Self.finderPid))
-        runner.run([.input(.windowOrderedOut(wid: Self.siblingWid, inSpaceTransition: false)),
-                    .input(.windowOrderedIn(wid: Self.siblingWid, now: 6.0, inSpaceTransition: false))])
-        XCTAssertEqual(runner.deferredCaptures, [], "nothing was animating: \(runner.deferredCaptures)")
     }
 
     // MARK: - D. The group half

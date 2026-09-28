@@ -80,7 +80,7 @@ enum CurrentWindowDrawEvidence: Equatable {
 }
 
 /// What the kernel recommends. Wrapper translates this into side effects (highlight redraws,
-/// scroll-to-visible, thumbnail preview, etc.).
+/// scroll-to-visible, etc.).
 enum SelectionDecision: Equatable {
     /// Post-firstVisible-guard empty case. Wrapper: clear `selectedTarget` and `hoveredIndex`.
     case clearTargetAndHover

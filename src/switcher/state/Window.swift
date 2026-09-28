@@ -12,9 +12,9 @@ class Window {
     /// construction — the field-by-field copy this replaces could not promise that, and eight fields once
     /// shipped inert because one of the two lists was missing them.
     ///
-    /// Two of its fields must never be read off it directly: `cgsPhantomLatch` holds only the latched CGS
-    /// verdict (the user-facing value is the derived `isPhantom` below), and `hasThumbnail` mirrors pixels
-    /// this class owns. Kernels receive `state`, which patches the derived values in.
+    /// `cgsPhantomLatch` must never be read off it directly: it holds only the latched CGS verdict (the
+    /// user-facing value is the derived `isPhantom` below). Kernels receive `state`, which patches the derived
+    /// values in.
     var tracked: TrackedWindow
     /// Canonical data record this window exposes to the switcher's logic kernels (see `WindowState`), with
     /// the derived facts (`isTabbed`, `isPhantom`, the tab hold) patched in. The subscript below forwards
@@ -36,8 +36,6 @@ class Window {
     /// Shell-owned, so deliberately NOT in `tracked`: it records how this destination was acquired (AX vs
     /// attention), which no reducer rule or kernel decides on. Patched into `state` for the kernels.
     var axStatus = AxSemanticStatus.axVerified
-    /// The pixels are shell-owned; `tracked.hasThumbnail` is the reducer's view of them, so it mirrors this.
-    var thumbnail: CALayerContents? { didSet { tracked.hasThumbnail = thumbnail != nil } }
     var icon: CGImage? { get { application.icon } }
     var shouldShowTheUser = true
     /// DERIVED from the `TabGroups` registry (the single owner of group membership): the ordered members of
@@ -75,12 +73,8 @@ class Window {
     }
 
     /// Take the reduced record whole — the write half of the bridge (`TrackedWindowStateBridge.apply`).
-    /// `hasThumbnail` is the one field re-derived instead of adopted: the pixels are shell-owned, and the
-    /// reducer setting it true states an INTENT that the `copyThumbnail` effect fulfils after this runs, and
-    /// may not (the source window can be gone by then).
     func adopt(_ record: TrackedWindow) {
         tracked = record
-        tracked.hasThumbnail = thumbnail != nil
     }
 
     /// `axUiElement` is optional for an exact-attention destination whose app has not answered yet.
@@ -230,31 +224,6 @@ class Window {
         return WindowElementAcquisition.element(for: wid, pid: application.pid, route: .otherSpaceViaBruteForce)
     }
 
-    func refreshThumbnail(_ screenshot: CALayerContents) {
-        // a frame the OS drew mid-animation is much smaller than this window: keep the previous thumbnail,
-        // stale but correct, while another capture is asked for (`WindowThumbnails.acceptCapture`)
-        guard WindowThumbnails.acceptCapture(self, screenshot) else { return }
-        thumbnail = screenshot
-        if !SwitcherSession.isActive || !shouldShowTheUser { return }
-        if let position = self.position, let size = self.size,
-           let view = (TilesView.recycledViews.first { $0.window_?.cgWindowId == cgWindowId }) {
-            if !view.thumbnail.isHidden {
-                let thumbnailSize = TileView.thumbnailSize(size, false)
-                let newSize = thumbnailSize.width != view.thumbnail.frame.width || thumbnailSize.height != view.thumbnail.frame.height
-                view.thumbnail.updateContents(screenshot, thumbnailSize)
-                // if the thumbnail size has changed, we need to refresh the open UI
-                if newSize {
-                    App.refreshOpenUiAfterExternalEvent([])
-                }
-            }
-            // a thumbnail-scale refresh must not downgrade the sharp full-res frame the Preview may be
-            // showing; the thumbnail only serves as the instant placeholder before the full-res fetch lands
-            if cgWindowId.flatMap({ SwitcherSession.current?.hasPreviewFrame($0) }) != true {
-                PreviewPanel.updateIfShowing(cgWindowId, screenshot, position, size)
-            }
-        }
-    }
-
     func canBeClosed() -> Bool {
         return !self.isWindowlessApp
     }
@@ -346,7 +315,6 @@ class Window {
             FocusIntents.shared.supersede()
             App.shared.activate(ignoringOtherApps: true)
             altTabWindow.makeKeyAndOrderFront(nil)
-            WindowThumbnails.previewSelectedIfNeeded()
         } else if self.isWindowlessApp || cgWindowId == nil {
             FocusIntents.shared.supersede()
             if let bundleUrl = application.bundleURL, self.isWindowlessApp {
@@ -359,7 +327,6 @@ class Window {
             } else {
                 application.runningApplication.activate(options: .activateAllWindows)
             }
-            WindowThumbnails.previewSelectedIfNeeded()
         } else {
             // macOS bug: when switching to a System Preferences window in another space, it switches to that space,
             // but quickly switches back to another window in that space
@@ -424,9 +391,6 @@ class Window {
         repairIfSuperseded(generation)
         guard FocusIntents.shared.mayProceed(generation) else { return }
         hearWhereFocusLanded()
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(50)) {
-            WindowThumbnails.previewSelectedIfNeeded()
-        }
     }
 
     private func hearWhereFocusLanded() {

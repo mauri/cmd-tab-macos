@@ -188,7 +188,6 @@ final class TestScenarioSimulator {
         for s in unit { runner.perform(s) }
         lastUnit = unit.map { "\($0)" }.joined(separator: " | ")
         checkNothingVanished()
-        checkNoIconFlash()
     }
     private var lastUnit = "(initial)"
 
@@ -228,28 +227,6 @@ final class TestScenarioSimulator {
     /// Windows that have had a tile at least once — what makes "vanish" mean something. See above.
     private var everShown = Set<Int>()
 
-    /// **A tile never falls back to the app icon once the window had pixels.** `TileView` draws the app icon
-    /// exactly when `thumbnail == nil`, so a window whose tile is handed to a wid with no capture yet FLASHES
-    /// — screenshot, icon, screenshot — even though the tile itself never disappears. That is a distinct
-    /// defect from the vanish, invisible to every other check here, and the one the user reported after the
-    /// vanish was fixed. Only counts once some wid of the window HAS been captured: before that there is
-    /// legitimately nothing to draw.
-    private func checkNoIconFlash() {
-        guard iconFlashFailures.isEmpty else { return }
-        for w in model.world {
-            let mine = w.allWids.compactMap { runner.state.window($0) }
-            guard mine.contains(where: { $0.hasThumbnail }) else { continue }
-            let shown = mine.filter { !runner.state.isTabbed($0) && !runner.state.isPhantom($0) }
-            for tile in shown where !tile.hasThumbnail {
-                iconFlashFailures.append("window #\(w.identity) shows wid \(tile.wid ?? 0) with NO thumbnail "
-                    + "while a sibling still has one — the tile flashes the app icon; the incoming wid should "
-                    + "inherit the outgoing one's pixels — right after: \(lastUnit.prefix(120))")
-                return
-            }
-        }
-    }
-    private var iconFlashFailures = [String]()
-
     /// Run a whole scenario, then drain anything the last action deferred — ground truth is a STEADY-state
     /// property, so the scenario must be allowed to settle before it is checked.
     @discardableResult
@@ -277,7 +254,7 @@ final class TestScenarioSimulator {
     /// groups were ever learned). It is also what "Group tabs: separate window for each tab" renders from,
     /// so a group that never forms is a user-visible defect there even when the default mode looks perfect.
     func groundTruthFailures(requireCompleteGroups: Bool = false) -> [String] {
-        var failures = runner.violations + vanishFailures + iconFlashFailures
+        var failures = runner.violations + vanishFailures
         for w in model.world {
             let ownWids = Set(w.allWids)
             let shown = runner.state.windows.filter { mw in

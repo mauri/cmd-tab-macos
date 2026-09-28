@@ -112,10 +112,6 @@ class CliServer {
             Logger.info { "QA: refusing the next focus" }
             return noOutput
         }
-        if rawValue == "--qa-drop-next-discovery", #available(macOS 26.0, *) {
-            WindowCaptureScreenshots.dropNextDiscoveryForQa()
-            return noOutput
-        }
         // The visual non-regression test opening each window, sheet, popover, alert and menu in turn.
         if let reply = QaSurfaces.command(rawValue) {
             return reply
@@ -276,7 +272,6 @@ class CliServer {
             selectionCommitCount: selectionCommitCount,
             lastSelectionCommitWid: lastSelectionCommitWid,
             hoveredIndex: SwitcherSession.current?.hoveredIndex,
-            windowControlsWid: windowControlsWid(),
             heldWids: Array(Windows.windowsHeldVisibleForTab),
             recentlyCreatedWids: Array(Windows.recentlyCreatedWindows),
             apps: Applications.list.map {
@@ -287,11 +282,6 @@ class CliServer {
             tiles: renderedTiles(),
             layout: renderedLayout(),
             tracking: TrackingTelemetryRecorder.state.summary())
-    }
-
-    private static func windowControlsWid() -> CGWindowID? {
-        guard SwitcherSession.isActive, TilesView.thumbnailOverView.isShowingWindowControls else { return nil }
-        return TilesView.thumbnailOverView.closeButton.window_?.cgWindowId
     }
 
     private static func qaScreens() -> [QaScreen] {
@@ -324,10 +314,8 @@ class CliServer {
                 spaceIcon: icons[StatusIconsView.spaceIdx].visible,
                 dockLabel: badge.isHidden ? nil : badge.text,
                 dockLabelAccessibility: badge.isHidden ? nil : badge.accessibilityLabel(),
-                thumbnailPixelSize: window.thumbnail?.size(),
-                expectedThumbnailPixelSize: expectedThumbnailPixelSize(window),
                 x: frame.origin.x, y: frame.origin.y, w: frame.size.width, h: frame.size.height,
-                thumbY: view.thumbnail.frame.origin.y, labelY: view.label.frame.origin.y,
+                labelY: view.label.frame.origin.y,
                 row: window.rowIndex ?? -1,
                 pointerTarget: pointerTarget(view))
         }
@@ -342,29 +330,20 @@ class CliServer {
         return CGPoint(x: onScreen.x, y: primary.frame.height - onScreen.y)
     }
 
-    /// The pixel size a thumbnail capture of this window should measure right now, from the same
-    /// `capturePixelSize` the capture request is configured with. Reported next to the size the last
-    /// capture actually came back with, so a harness can judge the capture path without knowing the
-    /// thumbnail-scale arithmetic.
-    private static func expectedThumbnailPixelSize(_ window: Window) -> CGSize? {
-        guard let size = window.size else { return nil }
-        return WindowThumbnails.capturePixelSize(size, WindowThumbnails.captureScaleFactor(window), false)
-    }
-
     /// The panel-wide numbers every tile is placed from. `labelHeight` is the one #6010 moved: it is meant
     /// to be the font's line height and nothing else, so a test can compare it against a run whose titles
     /// hold no line breaks.
     private static func renderedLayout() -> QaLayout? {
         guard SwitcherSession.isActive else { return nil }
         return QaLayout(labelHeight: TilesView.layoutCache.labelHeight,
-            thumbnailsWidth: TilesView.thumbnailsWidth, thumbnailsHeight: TilesView.thumbnailsHeight,
+            tilesWidth: TilesView.tilesWidth, tilesHeight: TilesView.tilesHeight,
             rowCount: TilesView.rows.filter { !$0.isEmpty }.count)
     }
 
     private struct QaLayout: Codable {
         var labelHeight: CGFloat
-        var thumbnailsWidth: CGFloat
-        var thumbnailsHeight: CGFloat
+        var tilesWidth: CGFloat
+        var tilesHeight: CGFloat
         var rowCount: Int
     }
 
@@ -387,11 +366,8 @@ class CliServer {
         /// before injecting input, so it can judge a release after the switcher has correctly closed.
         var selectionCommitCount: Int?
         var lastSelectionCommitWid: CGWindowID?
-        /// The tile under the pointer, and the window the traffic lights drawn over it act on (nil: none
-        /// shown). The two must move together: controls left on a tile that now draws another window would
-        /// close the wrong one.
+        /// The tile under the pointer.
         var hoveredIndex: Int?
-        var windowControlsWid: CGWindowID?
         var heldWids: [CGWindowID]
         var recentlyCreatedWids: [CGWindowID]
         var apps: [QaApp]
@@ -424,21 +400,12 @@ class CliServer {
         /// (`TileView.getAccessibilityTextForBadge`).
         var dockLabel: String?
         var dockLabelAccessibility: String?
-        /// The pixel size of the window's last accepted capture (nil: never captured, so the tile shows the
-        /// app icon), and the size a capture should come back with now (nil: no window geometry). The
-        /// ScreenCaptureKit path is configured with the second, so the two differ by at most a pixel or two
-        /// when the capture path works.
-        var thumbnailPixelSize: CGSize?
-        var expectedThumbnailPixelSize: CGSize?
-        /// **The laid-out geometry, so a test can judge the GRID and not just the list.** The tile's own
-        /// frame moves when the row height is wrong (titles / appIcons styles), and the thumbnail's origin
-        /// inside it moves when only the label metric is wrong (thumbnails style) — which is the shape of
-        /// #6010 and is invisible in every other field here.
+        /// The laid-out geometry, so a test can judge the list and not just its content: the tile's own
+        /// frame moves when the row height is wrong.
         var x: CGFloat
         var y: CGFloat
         var w: CGFloat
         var h: CGFloat
-        var thumbY: CGFloat
         var labelY: CGFloat
         var row: Int
         /// Where to post a pointer event to land on the tile (`pointerTarget`); nil when it is not on screen.

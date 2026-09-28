@@ -30,7 +30,6 @@ class Preferences {
             "titleTruncation": TitleTruncationPreference.end.indexAsString,
             "showTitles": ShowTitlesPreference.windowTitle.indexAsString,
             "fadeOutAnimation": "false",
-            "previewFadeInAnimation": "true",
             "startAtLogin": "true",
             "menubarIcon": MenubarIconPreference.outlined.indexAsString,
             "menubarIconShown": "true",
@@ -38,12 +37,8 @@ class Preferences {
             "exceptions": defaultExceptions(),
             "updatePolicy": UpdatePolicyPreference.autoCheck.indexAsString,
             "crashPolicy": CrashPolicyPreference.ask.indexAsString,
-            "hideThumbnails": "false",
             "hideSpaceNumberLabels": "true",
             "hideStatusIcons": "false",
-            "previewFocusedWindow": "false",
-            "captureWindowsInBackground": "false",
-            "screenRecordingPermissionSkipped": "false",
             "trackpadHapticFeedbackEnabled": "true",
             "settingsWindowShownOnFirstLaunch": "false",
         ]
@@ -71,7 +66,6 @@ class Preferences {
             values[indexToName("appearanceSizeOverride", index)] = AppearanceSizePreference.medium.indexAsString
             values[indexToName("appearanceThemeOverride", index)] = AppearanceThemePreference.system.indexAsString
             values[indexToName("shortcutStyleOverride", index)] = ShortcutStylePreference.doNothingOnRelease.indexAsString
-            values[indexToName("previewFocusedWindowOverride", index)] = "false"
         }
         return values
     }()
@@ -109,14 +103,10 @@ class Preferences {
     static var windowDisplayDelayInMs: Int { CachedUserDefaults.int("windowDisplayDelay") }
     static var windowDisplayDelay: DispatchTimeInterval { DispatchTimeInterval.milliseconds(windowDisplayDelayInMs) }
     static var fadeOutAnimation: Bool { CachedUserDefaults.bool("fadeOutAnimation") }
-    static var previewFadeInAnimation: Bool { CachedUserDefaults.bool("previewFadeInAnimation") }
     static var hideSpaceNumberLabels: Bool { CachedUserDefaults.bool("hideSpaceNumberLabels") }
     static var hideStatusIcons: Bool { CachedUserDefaults.bool("hideStatusIcons") }
     static var startAtLogin: Bool { CachedUserDefaults.bool("startAtLogin") }
     static var exceptions: [ExceptionEntry] { CachedUserDefaults.json("exceptions", [ExceptionEntry].self) }
-    static var previewSelectedWindow: Bool { CachedUserDefaults.bool("previewFocusedWindow") }
-    static var captureWindowsInBackground: Bool { CachedUserDefaults.bool("captureWindowsInBackground") }
-    static var screenRecordingPermissionSkipped: Bool { CachedUserDefaults.bool("screenRecordingPermissionSkipped") }
     static var settingsWindowShownOnFirstLaunch: Bool { CachedUserDefaults.bool("settingsWindowShownOnFirstLaunch") }
 
     // macro values
@@ -259,11 +249,11 @@ class Preferences {
 
     // MARK: - Per-shortcut appearance overrides
 
-    /// The 5 override base names. Their indexed forms (e.g. `appearanceStyleOverride2`) live in
+    /// The 4 override base names. Their indexed forms (e.g. `appearanceStyleOverride2`) live in
     /// `Preferences.all` only when the user has explicitly set an override on that shortcut.
     static let appearanceOverrideBaseNames = [
         "appearanceStyleOverride", "appearanceSizeOverride", "appearanceThemeOverride",
-        "shortcutStyleOverride", "previewFocusedWindowOverride",
+        "shortcutStyleOverride",
     ]
 
     /// Reverse lookup from an override base name to the global key it overrides.
@@ -272,7 +262,6 @@ class Preferences {
         "appearanceSizeOverride": "appearanceSize",
         "appearanceThemeOverride": "appearanceTheme",
         "shortcutStyleOverride": "shortcutStyle",
-        "previewFocusedWindowOverride": "previewFocusedWindow",
     ]
 
     /// True when the user has explicitly set an override for `baseName` on shortcut `index`.
@@ -293,7 +282,7 @@ class Preferences {
     }
 
     /// Maps the 3 Pro-gated index-0 override base names to their remembered-key in `ProTransitionState`.
-    /// Returns nil for the 2 non-gated overrides and for index >= 1.
+    /// Returns nil for the non-gated override and for index >= 1.
     private static func overrideRememberedKey(_ baseName: String) -> String? {
         switch baseName {
         case "appearanceStyleOverride": return ProGatedPreferences.appearanceStyleOverride0.gate?.rememberedKey
@@ -333,26 +322,6 @@ class Preferences {
         guard hasOverride("shortcutStyleOverride", index) else { return shortcutStyle }
         if index == 0 { return ProGatedPreferences.shortcutStyleOverride0.read() }
         return CachedUserDefaults.macroPref(indexToName("shortcutStyleOverride", index), ShortcutStylePreference.allCases)
-    }
-
-    static func effectivePreviewSelectedWindow(_ index: Int) -> Bool {
-        false
-    }
-
-    /// captures aren't tied to a specific shortcut, so anything sized or routed for Preview
-    /// must consider every slot's effective setting
-    static var anyShortcutUsesPreview: Bool {
-        (0...maxShortcutCount).contains { effectivePreviewSelectedWindow($0) }
-    }
-
-    /// The switcher shows only icons and titles, so no window captures are taken.
-    static var anyShortcutShowsWindowCaptures: Bool {
-        false
-    }
-
-    /// No feature needs the Screen Recording permission, so the menubar callout never asks for it.
-    static var screenRecordingDependentFeatures: PermissionCalloutResolver.DependentFeatures {
-        .none
     }
 
     /// key-above-tab is ` on US keyboard, but can be different on other keyboards

@@ -12,11 +12,9 @@ class TileTitleView: NSTextField {
     /// `NSView` is its own `CALayerDelegate`. By implementing `action(for:forKey:)` on this
     /// subclass we intercept the lookup AppKit performs when a layer property changes, and
     /// return `NSNull()` for the animation keys — the documented "no animation for this key"
-    /// sentinel. Without this, the label slides smoothly from its previous-style position
-    /// during a cross-style summon (e.g. right-of-icon → under-icon when going thumbnails →
-    /// appIcons), because `caTransaction { setDisableActions(true) }` in `TilesPanel.updateContents`
-    /// doesn't cover the follow-up layout pass that `NSWindow.setContentSize` triggers outside
-    /// the transaction.
+    /// sentinel. Without this, the label slides smoothly to its new position, because
+    /// `caTransaction { setDisableActions(true) }` in `TilesPanel.updateContents` doesn't cover the
+    /// follow-up layout pass that `NSWindow.setContentSize` triggers outside the transaction.
     ///
     /// Not marked `override`: `NSView`'s `CALayerDelegate` conformance is via Objective-C and
     /// Swift doesn't expose the method as overridable. Providing it here at the Swift level

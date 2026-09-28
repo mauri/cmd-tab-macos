@@ -163,7 +163,7 @@ class Application: NSObject {
 
     func fetchAppIcon() {
         guard icon == nil else { return }
-        BackgroundWork.screenshotsQueue.addOperation { [weak self] in
+        BackgroundWork.appIconsQueue.addOperation { [weak self] in
             guard let self, self.icon == nil else { return }
             let r = Application.appIconWithoutPadding(self.runningApplication.icon)
             DispatchQueue.main.async { [weak self] in
