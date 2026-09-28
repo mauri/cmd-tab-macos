@@ -42,13 +42,13 @@ class Preferences {
             "hideSpaceNumberLabels": "true",
             "hideStatusIcons": "false",
             "previewFocusedWindow": "false",
-            "captureWindowsInBackground": "true",
+            "captureWindowsInBackground": "false",
             "screenRecordingPermissionSkipped": "false",
             "trackpadHapticFeedbackEnabled": "true",
             "settingsWindowShownOnFirstLaunch": "false",
         ]
         (0..<maxShortcutCount).forEach { index in
-            values[indexToName("holdShortcut", index)] = defaultShortcut("⌥")
+            values[indexToName("holdShortcut", index)] = defaultShortcut(index == 0 ? "⌘" : "⌥")
             values[indexToName("nextWindowShortcut", index)] = defaultShortcut(index == 0 ? "⇥" : (index == 1 ? keyAboveTabDependingOnInputSource() : ""))
         }
         (0...maxShortcutCount).forEach { index in
@@ -58,7 +58,7 @@ class Preferences {
             values[indexToName("showMinimizedWindows", index)] = ShowHowPreference.show.indexAsString
             values[indexToName("showHiddenWindows", index)] = ShowHowPreference.show.indexAsString
             values[indexToName("showFullscreenWindows", index)] = ShowHowPreference.show.indexAsString
-            values[indexToName("showWindowlessApps", index)] = ShowHowPreference.showAtTheEnd.indexAsString
+            values[indexToName("showWindowlessApps", index)] = ShowHowPreference.hide.indexAsString
             values[indexToName("windowOrder", index)] = WindowOrderPreference.recentlyFocused.indexAsString
             values[indexToName("shortcutStyle", index)] = ShortcutStylePreference.focusOnRelease.indexAsString
             values[indexToName("showAppsOrWindows", index)] = GroupAppsPreference.allWindows.indexAsString
@@ -315,9 +315,7 @@ class Preferences {
     }
 
     static func effectiveAppearanceStyle(_ index: Int) -> AppearanceStylePreference {
-        guard hasOverride("appearanceStyleOverride", index) else { return appearanceStyle }
-        if index == 0 { return ProGatedPreferences.appearanceStyleOverride0.read() }
-        return CachedUserDefaults.macroPref(indexToName("appearanceStyleOverride", index), AppearanceStylePreference.allCases)
+        .titles
     }
 
     static func effectiveAppearanceSize(_ index: Int) -> AppearanceSizePreference {
@@ -338,8 +336,7 @@ class Preferences {
     }
 
     static func effectivePreviewSelectedWindow(_ index: Int) -> Bool {
-        guard hasOverride("previewFocusedWindowOverride", index) else { return previewSelectedWindow }
-        return CachedUserDefaults.bool(indexToName("previewFocusedWindowOverride", index))
+        false
     }
 
     /// captures aren't tied to a specific shortcut, so anything sized or routed for Preview
@@ -348,30 +345,14 @@ class Preferences {
         (0...maxShortcutCount).contains { effectivePreviewSelectedWindow($0) }
     }
 
-    /// Whether any shortcut's effective settings display window captures at all: the Thumbnails style
-    /// (tile screenshots) and/or the Preview overlay (whose instant first frame upscales the stored
-    /// thumbnail). When neither is configured, stored images would never be shown, so all capture work
-    /// is skipped and no image RAM is held.
+    /// The switcher shows only icons and titles, so no window captures are taken.
     static var anyShortcutShowsWindowCaptures: Bool {
-        anyShortcutUsesPreview || (0...maxShortcutCount).contains { effectiveAppearanceStyle($0) == .thumbnails }
+        false
     }
 
-    /// Which Screen-Recording-dependent features any shortcut's effective settings rely on: the
-    /// Thumbnails appearance style (window screenshots) and/or the "preview selected window" overlay.
-    /// These are the only features needing the permission, so when none are configured the menubar
-    /// callout that nags about the missing permission is pointless and is suppressed (see #5623). The
-    /// result also drives which feature(s) the callout names. We OR each flag across every shortcut
-    /// slot, so a per-shortcut override that enables Thumbnails/Preview on any one slot flips it on.
-    /// The pure classification lives in `PermissionCalloutResolver` (unit-tested).
+    /// No feature needs the Screen Recording permission, so the menubar callout never asks for it.
     static var screenRecordingDependentFeatures: PermissionCalloutResolver.DependentFeatures {
-        var usesThumbnails = false
-        var usesPreviews = false
-        for index in 0...maxShortcutCount {
-            usesThumbnails = usesThumbnails || effectiveAppearanceStyle(index) == .thumbnails
-            usesPreviews = usesPreviews || effectivePreviewSelectedWindow(index)
-            if usesThumbnails && usesPreviews { break }
-        }
-        return PermissionCalloutResolver.dependentFeatures(usesThumbnails: usesThumbnails, usesPreviews: usesPreviews)
+        .none
     }
 
     /// key-above-tab is ` on US keyboard, but can be different on other keyboards
