@@ -6,21 +6,18 @@
 
 `WindowOrderResolver.isOrderedBefore` decides the order windows appear in the switcher. It's the
 comparator behind `Windows.sort`, extracted as a pure kernel: the caller precomputes each window's
-ordering facts once (`OrderWindow` — a window's `WindowState` + its `ApplicationState` + the
-query-derived search rank) and the kernel compares two of them; the sort-mode knobs (`searchActive`,
-`windowlessAtEnd`, `hiddenAtEnd`, `minimizedAtEnd`, `sortType`) are labeled parameters with defaults,
-hoisted once per sort by the caller and captured by the comparator closure. Besides testability,
-precomputing `OrderWindow`s let the sort drop from O(n log n) `Search` calls to O(n) (facts are
-snapshotted once).
+ordering facts once (`OrderWindow` — a window's `WindowState` + its `ApplicationState`) and the kernel
+compares two of them; the sort-mode knobs (`windowlessAtEnd`, `hiddenAtEnd`, `minimizedAtEnd`,
+`sortType`) are labeled parameters with defaults, hoisted once per sort by the caller and captured by the
+comparator closure.
 
 Decision order:
-1. **Search active** → matched windows first; then higher relevance; then `lastFocusOrder`.
-2. **Show-at-the-end buckets** → windows whose type is set to "show at the end" (windowless / hidden /
+1. **Show-at-the-end buckets** → windows whose type is set to "show at the end" (windowless / hidden /
    minimized) sink below the rest.
-3. **Sort type** → `recentlyFocused` (lowest `lastFocusOrder`), `recentlyCreated` (highest
+2. **Sort type** → `recentlyFocused` (lowest `lastFocusOrder`), `recentlyCreated` (highest
    `creationOrder`), `alphabetical` (app name, then title; `localizedStandardCompare`), or `space`
    (all-spaces windows first, then lowest space index, then alphabetical).
-4. **Tiebreak** → `lastFocusOrder` (for the alphabetical/space paths).
+3. **Tiebreak** → `lastFocusOrder` (for the alphabetical/space paths).
 
 ## Behavior & edge cases
 
@@ -43,11 +40,6 @@ tiebreaks. Current attention may replace the session choice; discovery and group
 ## Test scenarios
 
 Mirrors `WindowOrderResolverTests.swift` 1:1.
-
-### A. Search ranking
-- **testSearchMatchedSortsBeforeUnmatched** — matched windows precede unmatched.
-- **testSearchHigherRelevanceSortsFirst** — higher relevance first.
-- **testSearchEqualRelevanceTiebreaksByLastFocusOrder** — equal relevance → `lastFocusOrder`.
 
 ### B. Show-at-the-end buckets
 - **testWindowlessPushedToEndWhenConfigured** — a windowless row sinks below a real window.

@@ -114,7 +114,7 @@ final class KeyboardEventsUtilsTests: XCTestCase {
         resetState()
         ModifierFlags.current = [.option]
         handleKeyboardEvent(KeyboardEventsTestable.globalShortcutsIds["nextWindowShortcut"], .down,
-                            nil, nil, false, nil, true)
+                            nil, nil, false, true)
         XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, ["nextWindowShortcut", "holdShortcut"])
     }
 
@@ -227,43 +227,9 @@ final class KeyboardEventsUtilsTests: XCTestCase {
         XCTAssertTrue(ModifierReleaseLog.claimRelease(after: tab, holdModifiers: option))
     }
 
-    // alt-down > tab-down > tab-up > w-down > w-up > alt-up
-    func testCloseWindowShortcut() throws {
-        resetState()
-        ModifierFlags.current = [.option]
-        handleKeyboardEvent(nil, nil, nil, [.option], false)
-        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, [])
-        handleKeyboardEvent(KeyboardEventsTestable.globalShortcutsIds["nextWindowShortcut"], .down, nil, nil, false)
-        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, ["nextWindowShortcut"])
-        handleKeyboardEvent(KeyboardEventsTestable.globalShortcutsIds["nextWindowShortcut"], .up, nil, nil, false)
-        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, ["nextWindowShortcut"])
-        handleKeyboardEvent(nil, nil, keycodeMap["w"], [.option], false)
-        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, ["nextWindowShortcut", "closeWindowShortcut"])
-        handleKeyboardEvent(nil, nil, nil, [.option], false)
-        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, ["nextWindowShortcut", "closeWindowShortcut"])
-        ModifierFlags.current = []
-        handleKeyboardEvent(nil, nil, nil, [], false)
-        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, ["nextWindowShortcut", "closeWindowShortcut", "holdShortcut"])
-    }
-
     func testOnReleaseDoNothing() throws {
         resetState()
         Preferences.shortcutStyle = .doNothingOnRelease
-        ModifierFlags.current = [.option]
-        handleKeyboardEvent(nil, nil, nil, [.option], false)
-        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, [])
-        handleKeyboardEvent(KeyboardEventsTestable.globalShortcutsIds["nextWindowShortcut"], .down, nil, nil, false)
-        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, ["nextWindowShortcut"])
-        handleKeyboardEvent(KeyboardEventsTestable.globalShortcutsIds["nextWindowShortcut"], .up, nil, nil, false)
-        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, ["nextWindowShortcut"])
-        ModifierFlags.current = []
-        handleKeyboardEvent(nil, nil, nil, [], false)
-        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, ["nextWindowShortcut"])
-    }
-
-    func testOnReleaseToggleSearchModeDoesNotFocus() throws {
-        resetState()
-        Preferences.shortcutStyle = .searchOnRelease
         ModifierFlags.current = [.option]
         handleKeyboardEvent(nil, nil, nil, [.option], false)
         XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, [])

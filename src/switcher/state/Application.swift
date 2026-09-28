@@ -29,7 +29,6 @@ class Application: NSObject {
     private(set) var activationPolicy: NSApplication.ActivationPolicy
     private(set) var isTerminated: Bool
     var focusedWindow: Window? = nil
-    var alreadyRequestedToQuit = false
     /// The tracking pipeline's identity for this process, so a late teardown cannot hit a replacement that
     /// reused the pid (`AxObserverRegistry.processExited`).
     var trackingGeneration: UInt64 = 0
@@ -201,31 +200,5 @@ class Application: NSObject {
         Windows.removeWindows([windowlessAppWindow], false)
         Logger.debug { "windowless - \(self.runningApplication.localizedName ?? "?") pid=\(self.pid)" }
         App.refreshOpenUiAfterExternalEvent()
-    }
-
-    func hideOrShow() {
-        if runningApplication.isHidden {
-            runningApplication.unhide()
-        } else {
-            runningApplication.hide()
-        }
-    }
-
-    func canBeQuit() -> Bool {
-        return self.bundleIdentifier != "com.apple.finder" || Preferences.finderShowsQuitMenuItem
-    }
-
-    func quit() {
-        // only let power users quit Finder if they opt-in
-        if !canBeQuit() {
-            NSSound.beep()
-            return
-        }
-        if alreadyRequestedToQuit {
-            runningApplication.forceTerminate()
-        } else {
-            runningApplication.terminate()
-            alreadyRequestedToQuit = true
-        }
     }
 }

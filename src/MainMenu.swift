@@ -5,9 +5,7 @@ import Cocoa
 class MainMenu {
     private static var mainMenu: NSMenu!
     private static var menuItemsWithShortcut = [NSMenuItem: String]()
-    private static var editMenuItems = Set<NSMenuItem>()
     private static var toggleState = true
-    private static var editToggleState = true
 
     static func create() {
         mainMenu = NSMenu(title: "Main Menu")
@@ -27,33 +25,18 @@ class MainMenu {
         for (item, keyEquivalent) in menuItemsWithShortcut {
             item.keyEquivalent = enabled ? keyEquivalent : ""
         }
-        // toggle() also touches Edit items; keep editToggleState in sync so a
-        // following toggleEditMenu(true) doesn't no-op and leave them disabled.
-        editToggleState = enabled
-    }
-
-    static func toggleEditMenu(_ enabled: Bool) {
-        guard editToggleState != enabled else { return }
-        editToggleState = enabled
-        for item in editMenuItems {
-            guard let keyEquivalent = menuItemsWithShortcut[item] else { continue }
-            item.keyEquivalent = enabled ? keyEquivalent : ""
-        }
     }
 
     private static func rememberMenuItemsWithShortcut() {
-        guard let items = mainMenu?.items else { return }
-        let editSubmenu = items.first { $0.submenu?.title == "Edit" }?.submenu
-        var stack: [(NSMenu, Bool)] = [(mainMenu, false)]
-        while let (menu, isEdit) = stack.popLast() {
-            let isEditMenu = isEdit || menu === editSubmenu
+        guard mainMenu != nil else { return }
+        var stack: [NSMenu] = [mainMenu]
+        while let menu = stack.popLast() {
             for item in menu.items {
                 if !item.keyEquivalent.isEmpty {
                     menuItemsWithShortcut[item] = item.keyEquivalent
-                    if isEditMenu { editMenuItems.insert(item) }
                 }
                 if let submenu = item.submenu {
-                    stack.append((submenu, isEditMenu))
+                    stack.append(submenu)
                 }
             }
         }

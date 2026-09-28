@@ -14,7 +14,6 @@ final class SwitcherSession {
     static var activeShortcutIndex: Int { current?.shortcutIndex ?? 0 }
 
     var shortcutIndex: Int = 0
-    let searchDiscovery = SearchDiscoveryPolicy.Opportunity()
     var isFirstSummon: Bool = true
     var forceDoNothingOnRelease: Bool = false
 
@@ -50,12 +49,8 @@ final class SwitcherSession {
     /// when the switcher opens, and locking the default onto whatever occupied the slot mid-churn made the
     /// selection trail that window to a nonsense position as the list reordered.
     var userPickedSelection = false
-    /// Set by a shortcut action on the selected window; see `SelectionRemovalFallback`. Any selection move
-    /// the user makes afterwards supersedes it.
-    var removalFallback: SelectionRemovalFallback?
 
     func performUserSelection(_ update: () -> Void) {
-        searchDiscovery.lastNavigationAt = ProcessInfo.processInfo.systemUptime
         userPickedSelection = true
         update()
     }
@@ -75,7 +70,4 @@ final class SwitcherSession {
     /// summon (see `Windows.selectionInputs`). Newcomers only push the default pick along while the list is
     /// longer than this — one that merely took the tile of a window that left it moved nothing.
     var visibleWindowCountAtSummon: Int?
-    /// Keeps one-per-app tiles from changing identity while discovery, grouping and search settle.
-    var representativeByPid = [pid_t: String]()
-    var searchQuery: String = ""
 }

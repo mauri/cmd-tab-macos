@@ -1,22 +1,13 @@
 import Cocoa
 import Carbon.HIToolbox.Events
 import ShortcutRecorder
-import UniformTypeIdentifiers
-
-enum SearchKeyResult {
-    case handled
-    case passToField
-    case passToShortcuts
-}
 
 class TilesView {
     static var scrollView: ScrollView!
     static var contentView: EffectView!
     static var currentEffectViewKind: EffectViewKind?
     private static var cachedEffectViews: [EffectViewKind: EffectView] = [:]
-    static var searchField = NSSearchField(frame: NSRect(x: 0, y: 0, width: 320, height: 30))
     static var noWindowLabel = NSTextField(labelWithString: NSLocalizedString("No Window", comment: ""))
-    private(set) static var searchMode: SearchMode = .off
     static var rows = [[TileView]]()
     static var recycledViews = [TileView]()
     static var tilesWidth = CGFloat(0.0)
@@ -28,7 +19,6 @@ class TilesView {
 
     static func initialize() {
         guard !initialized else { return }
-        configureSearchField()
         configureNoWindowLabel()
         updateBackgroundView()
         initialized = true
@@ -41,248 +31,11 @@ class TilesView {
         (0..<count).forEach { _ in recycledViews.append(TileView()) }
     }
 
-    static var isSearchModeOn: Bool { searchMode != .off }
-    static var isSearchEditing: Bool { searchMode == .editing }
-
-    static func startSearchSession(_ startInSearchMode: Bool) {
-        searchField.stringValue = ""
-        Windows.updateSearchQuery("")
-        searchMode = SearchModeResolver.startMode(startInSearch: startInSearchMode)
-        updateSearchFieldEditability()
-    }
-
-    static func endSearchSession() {
-        MainThreadStall.step()
-        Windows.updateSearchQuery("")
-        TilesPanel.shared.resetFrozenPosition()
-        searchMode = .off
-        takeTheCaretFromTheField()
-    }
-
-    /// The counterpart to `giveTheFieldTheCaret`, and a turn late for the mirror reason: clearing the field
-    /// and dropping its editability resigns it as first responder, and AppKit answers that by DEACTIVATING
-    /// the system text-input context, a synchronous XPC to the input-method services (`CursorUIViewService`,
-    /// `CharacterPalette`). Measured 4-7ms on macOS 26.6.2, but it is unbounded: on one user's machine it
-    /// returned only by timing out after 3.0s, and the whole dismissal sat behind it (#5981). Callers run it
-    /// last, behind whatever the user is actually waiting for: the panel hiding, or the re-layout that puts
-    /// the unfiltered list back.
-    private static func takeTheCaretFromTheField() {
-        DispatchQueue.main.async {
-            guard searchMode == .off else { return } // search restarted meanwhile and owns the field now
-            searchField.stringValue = ""
-            updateSearchFieldEditability()
-        }
-    }
-
-    static func toggleSearchModeFromShortcut() {
-        switch SearchModeResolver.toggle(mode: searchMode) {
-            case .enterEditing: enableSearchEditing()
-            case .disable: disableSearchMode()
-        }
-    }
-
-    static func disableSearchMode() {
-        MainThreadStall.step()
-        guard SearchModeResolver.disable(mode: searchMode) == .exitToOff else { return }
-        TilesPanel.shared.resetFrozenPosition()
-        searchMode = .off
-        clearHover()
-        Windows.updateSearchQuery("")
-        App.refreshUi(true)
-        focusSelectedTileIfPossible()
-        takeTheCaretFromTheField()
-    }
-
-    static func enableSearchEditing() {
-        MainThreadStall.step()
-        switch SearchModeResolver.enableEditing(mode: searchMode, canSearch: true) {
-            case .placeCaretOnly:
-                giveTheFieldTheCaret()
-            case .enterEditing:
-                SearchDiscoveryHint.shared.cancel()
-                searchMode = .editing
-                updateSearchFieldEditability()
-                SwitcherSession.current?.forceDoNothingOnRelease = true
-                clearHover()
-                stopKeyRepeatTimers()
-                App.refreshUi(true)
-                giveTheFieldTheCaret()
-            default:
-                return
-        }
-    }
-
-    /// The show-path twin of `endSearchSession`: making the field first responder ACTIVATES the system
-    /// text-input context, the same synchronous XPC whose deactivation timed out for 3.0s in #5981. It runs
-    /// a runloop turn late so the CoreAnimation transaction that reveals the panel commits first —
-    /// `TilesPanel.show()` has only SET alpha at this point, so a stall here would keep the old frame on
-    /// screen. Measured under 1ms on macOS 26.6.2; the deferral is for the tail, not the median.
-    private static func giveTheFieldTheCaret() {
-        DispatchQueue.main.async {
-            guard searchMode == .editing, SwitcherSession.isActive else { return }
-            giveTheFieldTheCaretNow()
-        }
-    }
-
-    /// Until the deferred pass above runs, the field is not first responder and a typed key would go to the
-    /// panel instead. It normally wins that race by a wide margin (measured 5-9ms, and 77ms on the first
-    /// summon of a launch where the main thread is still busy discovering windows), but the user is waiting
-    /// for this keystroke, so close the window rather than bet on it. A no-op once the field already has it:
-    /// past that point the selection belongs to the user, and moving it is what broke ⌘A (#6019). See
-    /// `SearchFieldEditing`.
-    static func giveTheFieldTheCaretNow() {
-        let intent = SearchFieldEditing.caretIntent(mode: searchMode, fieldOwnsCaret: fieldOwnsTheCaret())
-        guard intent == .takeCaretAndCollapseToEnd else { return }
-        TilesPanel.shared.makeFirstResponder(searchField)
-        placeSearchCaretAtEnd()
-    }
-
-    private static func fieldOwnsTheCaret() -> Bool {
-        guard let editor = searchField.currentEditor() else { return false }
-        return TilesPanel.shared.firstResponder === editor
-    }
-
-    static func handleSearchEditingKeyDown(_ event: NSEvent) -> SearchKeyResult {
-        let isPrintable = eventProducesText(event)
-        let decision = SearchModeResolver.routeKey(
-            hasMarkedText: hasMarkedText(),
-            isMenuOpen: ContextMenuEvents.isMenuOpen,
-            arrow: arrowCycleDirection(event.keyCode),
-            isTab: Int(event.keyCode) == kVK_Tab,
-            matchesShortcut: matchesAnyWhenActiveShortcut(event, isPrintable))
-        switch decision {
-            case .cycleSelection(let direction):
-                App.cycleSelection(cycleToDirection(direction))
-                return .handled
-            case .handled: return .handled
-            case .passToShortcuts: return .passToShortcuts
-            case .passToField: return .passToField
-        }
-    }
-
-    private static func arrowCycleDirection(_ keyCode: UInt16) -> CycleDirection? {
-        switch Int(keyCode) {
-            case kVK_LeftArrow: return .left
-            case kVK_RightArrow: return .right
-            case kVK_UpArrow: return .up
-            case kVK_DownArrow: return .down
-            default: return nil
-        }
-    }
-
-    private static func cycleToDirection(_ direction: CycleDirection) -> Direction {
-        switch direction {
-            case .left: return .left
-            case .right: return .right
-            case .up: return .up
-            case .down: return .down
-        }
-    }
-
     private static func configureNoWindowLabel() {
         noWindowLabel.textColor = .secondaryLabelColor
         noWindowLabel.font = .systemFont(ofSize: 13)
         noWindowLabel.alignment = .center
         noWindowLabel.isHidden = true
-    }
-
-    private static func configureSearchField() {
-        searchField.applySearchStyle()
-        searchField.usesSingleLineMode = true
-        searchField.target = Self.self
-        searchField.action = #selector(Self.searchFieldChanged(_:))
-        NotificationCenter.default.addObserver(forName: NSControl.textDidChangeNotification, object: searchField, queue: .main) { _ in
-            updateSearchQuery(searchField.stringValue)
-        }
-        updateSearchFieldEditability()
-    }
-
-    @objc private static func searchFieldChanged(_ sender: NSSearchField) {
-        updateSearchQuery(sender.stringValue)
-    }
-
-    private static func updateSearchQuery(_ query: String) {
-        if (SwitcherSession.current?.searchQuery ?? "") == query { return }
-        clearHover()
-        Windows.updateSearchQuery(query)
-        stopKeyRepeatTimers()
-        App.refreshUi(true)
-    }
-
-    private static func clearHover() {
-        guard let session = SwitcherSession.current, session.hoveredIndex != nil else { return }
-        tileOverView.resetHoveredWindow()
-        TilesView.highlight(session.selectedIndex)
-    }
-
-    private static func stopKeyRepeatTimers() {
-        let shortcutIndex = SwitcherSession.current?.shortcutIndex ?? 0
-        KeyRepeatTimer.stopTimerForRepeatingKey(Preferences.indexToName("nextWindowShortcut", shortcutIndex))
-        KeyRepeatTimer.stopTimerForRepeatingKey("previousWindowShortcut")
-    }
-
-    private static func focusSelectedTileIfPossible() {
-        let index = SwitcherSession.current?.selectedIndex ?? 0
-        guard index >= 0, index < TilesView.recycledViews.count else { return }
-        let tile = TilesView.recycledViews[index]
-        guard tile.window_ != nil, tile.window != nil else { return }
-        TilesPanel.shared.makeFirstResponder(tile)
-    }
-
-    /// AppKit selects the whole content when a text field becomes first responder, so the keystroke that
-    /// made us take the caret would REPLACE what is already in the field. Collapse to the end instead.
-    /// Only ever runs on the turn we take the caret; see `giveTheFieldTheCaretNow`.
-    private static func placeSearchCaretAtEnd() {
-        guard let editor = searchField.currentEditor() else { return }
-        editor.selectedRange = SearchFieldEditing.endOfText(length: searchField.stringValue.utf16.count)
-    }
-
-    static func hasMarkedText() -> Bool {
-        (searchField.currentEditor() as? NSTextView)?.hasMarkedText() == true
-    }
-
-    /// While editing the search field, any when-active shortcut (close / minimize / quit / fullscreen /
-    /// hide / focus / cancel / search) can be triggered by re-pressing the hold modifiers (e.g.
-    /// Cmd+Option+W); a bare printable key still types into the field. `Preferences.staticShortcutKeys`
-    /// is the single source of truth for the set. See `SearchModeResolver.editingShortcutMatch`.
-    private static func matchesAnyWhenActiveShortcut(_ event: NSEvent, _ isPrintable: Bool) -> Bool {
-        Preferences.staticShortcutKeys.contains { matchesShortcut(event, $0, isPrintable) }
-    }
-
-    private static func matchesShortcut(_ event: NSEvent, _ shortcutId: String, _ isPrintable: Bool) -> Bool {
-        guard let shortcut = ControlsTab.shortcuts[shortcutId]?.shortcut else { return false }
-        if shortcut.keyCode == .none || shortcut.carbonKeyCode != UInt32(event.keyCode) { return false }
-        let shortcutIndex = SwitcherSession.current?.shortcutIndex ?? 0
-        let holdModifiers = ControlsTab.shortcuts[Preferences.indexToName("holdShortcut", shortcutIndex)]?.shortcut.carbonModifierFlags.cleaned() ?? 0
-        let eventModifiers = cocoaToCarbonFlags(event.modifierFlags).cleaned()
-        let shortcutModifiers = shortcut.carbonModifierFlags.cleaned()
-        let hasCommandModifier = (shortcutModifiers & (UInt32(cmdKey) | UInt32(controlKey))) != 0
-        return SearchModeResolver.editingShortcutMatch(
-            eventModifiers: eventModifiers,
-            shortcutModifiers: shortcutModifiers,
-            holdModifiers: holdModifiers,
-            isPrintable: isPrintable,
-            shortcutHasCommandModifier: hasCommandModifier)
-    }
-
-    /// Whether this key-down inserts text into the field (a letter / digit / punctuation / space) as
-    /// opposed to a control key (Escape / Return / Tab / arrows / function keys). Lets a plain typed
-    /// key beat a when-active shortcut bound to it. See `SearchModeResolver.editingShortcutMatch`.
-    private static func eventProducesText(_ event: NSEvent) -> Bool {
-        guard let scalar = event.charactersIgnoringModifiers?.unicodeScalars.first else { return false }
-        let v = scalar.value
-        if v < 0x20 || v == 0x7F { return false }      // C0 control characters + delete
-        if v >= 0xF700 && v <= 0xF8FF { return false } // arrows / function keys (NSEvent reserved range)
-        return true
-    }
-
-    private static func updateSearchFieldEditability() {
-        let editable = SearchModeResolver.isFieldEditable(searchMode)
-        searchField.isEditable = editable
-        searchField.isSelectable = editable
-        if SwitcherSession.isActive {
-            MainMenu.toggleEditMenu(editable)
-        }
     }
 
     /// A title label is always drawn on one line, so its height is a property of the FONT and of nothing
@@ -299,15 +52,10 @@ class TilesView {
     }
 
     static func updateCachedSizes() {
-        guard let firstView = TilesView.recycledViews.first else { return }
+        guard !TilesView.recycledViews.isEmpty else { return }
         layoutCache.labelHeight = labelLineHeight()
-        let iconCellSize = firstView.statusIcons.iconCellSize
-        layoutCache.iconWidth = iconCellSize.width
-        layoutCache.iconHeight = iconCellSize.height
         layoutCache.comfortableReadabilityWidth = TileView.widthOfComfortableReadability()
         TileFontIconView.symbolCache.removeAll()
-        let spaceNumberStrings = (0...19).map { StatusIconsView.symbolForSpace($0) }
-        TileFontIconView.warmCaches(symbols: [.circledPlusSign, .circledMinusSign, .circledSlashSign, .circledStar], extraStrings: spaceNumberStrings, size: Appearance.fontHeight, color: Appearance.fontColor)
     }
 
     static func updateBackgroundView() {
@@ -317,11 +65,6 @@ class TilesView {
         let host = contentView.hostView
         scrollView?.removeFromSuperview()
         scrollView = ScrollView()
-        if searchMode != .off {
-            host.addSubview(searchField)
-        } else {
-            searchField.removeFromSuperview()
-        }
         host.addSubview(scrollView)
         host.addSubview(noWindowLabel)
     }
@@ -333,9 +76,6 @@ class TilesView {
         let newView = cachedEffectView(for: desired)
         currentEffectViewKind = desired
         let host = newView.hostView
-        if searchField.superview === contentView.hostView {
-            host.addSubview(searchField)
-        }
         host.addSubview(scrollView)
         host.addSubview(noWindowLabel)
         contentView = newView
@@ -374,7 +114,6 @@ class TilesView {
         tileUnderLayer = TileUnderLayer()
         tileOverView = TileOverView()
         tileOverView.scrollView = scrollView
-        cachedSearchBarHeight = nil
         Self.updateCachedSizes()
     }
 
@@ -443,7 +182,7 @@ class TilesView {
 
     static func updateItemsAndLayout(_ preservedScrollOrigin: CGPoint?) {
         var widthMax = TilesPanel.maxTilesWidth().rounded()
-        if Preferences.effectiveAppearanceSize(SwitcherSession.activeShortcutIndex) == .auto {
+        if Preferences.appearanceSize == .auto {
             resolveAutoSize(widthMax)
             Self.updateCachedSizes()
             widthMax = TilesPanel.maxTilesWidth().rounded()
@@ -474,8 +213,7 @@ class TilesView {
     }
 
     private static func resolveAutoSize(_ widthMax: CGFloat) {
-        let searchReservedHeight: CGFloat = searchMode == .off ? 0 : searchBarHeight() + 10
-        let heightMax = max(0, TilesPanel.maxTilesHeight() - searchReservedHeight)
+        let heightMax = TilesPanel.maxTilesHeight()
         _ = TileGridLayout.firstSizeThatFits([AppearanceSizePreference.large, .medium, .small], heightMax: heightMax) { size in
             Appearance.applySize(size)
             Self.updateCachedSizes()
@@ -548,16 +286,12 @@ class TilesView {
     }
 
     private static func layoutParentViews(_ maxX: CGFloat, _ widthMax: CGFloat, _ maxY: CGFloat) {
-        let searchBarHeight = searchBarHeight()
-        let searchBottomPadding = CGFloat(10)
-        let searchReservedHeight = searchMode == .off ? 0 : searchBarHeight + searchBottomPadding
-        let heightMax = max(0, TilesPanel.maxTilesHeight() - searchReservedHeight)
-        let minSearchWidth = min(widthMax, 320)
+        let heightMax = TilesPanel.maxTilesHeight()
         let minWidth = min(widthMax, 320)
-        TilesView.tilesWidth = max(min(maxX, widthMax), searchMode == .off ? (maxX == 0 ? minWidth : 0) : minWidth)
+        TilesView.tilesWidth = max(min(maxX, widthMax), maxX == 0 ? minWidth : 0)
         TilesView.tilesHeight = min(maxY, heightMax)
         let frameWidth = TilesView.tilesWidth + Appearance.windowPadding * 2
-        let frameHeight = TilesView.tilesHeight + Appearance.windowPadding * 2 + searchReservedHeight
+        let frameHeight = TilesView.tilesHeight + Appearance.windowPadding * 2
         let originX = Appearance.windowPadding
         let originY = Appearance.windowPadding
         contentView.frame.size = NSSize(width: frameWidth, height: frameHeight)
@@ -568,18 +302,6 @@ class TilesView {
         scrollView.frame.size = NSSize(width: TilesView.tilesWidth, height: max(0, min(maxY, heightMax)))
         scrollView.frame.origin = CGPoint(x: originX, y: originY)
         scrollView.contentView.frame.size = scrollView.frame.size
-        if searchMode != .off {
-            if searchField.superview !== host {
-                host.addSubview(searchField)
-            }
-            let searchWidth = minSearchWidth
-            searchField.frame.size = NSSize(width: searchWidth, height: searchBarHeight)
-            let searchX = originX + (TilesView.tilesWidth - searchWidth) * 0.5
-            searchField.frame.origin = CGPoint(x: searchX, y: frameHeight - Appearance.windowPadding - searchBarHeight)
-            searchField.layoutSubtreeIfNeeded()
-        } else if searchField.superview != nil {
-            searchField.removeFromSuperview()
-        }
         if App.shared.userInterfaceLayoutDirection == .rightToLeft {
             let croppedWidth = max(0, TilesView.tilesWidth - maxX)
             scrollView.documentView!.subviews.forEach { $0.frame.origin.x -= croppedWidth }
@@ -596,16 +318,6 @@ class TilesView {
             let labelY = scrollView.frame.origin.y + (scrollView.frame.height - noWindowLabel.frame.height) * 0.5
             noWindowLabel.frame.origin = CGPoint(x: labelX, y: labelY)
         }
-    }
-
-    private static var cachedSearchBarHeight: CGFloat?
-
-    private static func searchBarHeight() -> CGFloat {
-        if let cached = cachedSearchBarHeight { return cached }
-        let fitting = searchField.fittingSize.height
-        let height = fitting > 0 ? ceil(fitting) : ceil(searchField.cell?.cellSize.height ?? 30)
-        cachedSearchBarHeight = height
-        return height
     }
 
     static func centerRows(_ maxX: CGFloat) {
@@ -652,8 +364,6 @@ class TilesView {
 
     struct LayoutCache {
         var labelHeight = CGFloat(0)
-        var iconWidth = CGFloat(0)
-        var iconHeight = CGFloat(0)
         var comfortableReadabilityWidth: CGFloat?
     }
 
@@ -703,121 +413,10 @@ class ScrollView: NSScrollView {
 }
 
 class TilesDocumentView: FlippedView {
-    private static let dragAndDropTimerDelay = TimeInterval(2)
-    private static let dragAndDropTimerResetDistance = CGFloat(5)
-
-    private weak var dragTarget: TileView?
-    private var lastDragLocation: NSPoint?
-    private var timerResetLocation: NSPoint?
-    private var dragAndDropTimer: Timer?
-
     // periphery:ignore - AppKit private overrides, found by the ObjC runtime rather than called
     @objc func _windowChangedKeyState() {}
     // periphery:ignore - AppKit private overrides, found by the ObjC runtime rather than called
     @objc func _layoutSubtreeWithOldSize(_ oldSize: NSSize) {}
-
-    override func wantsPeriodicDraggingUpdates() -> Bool { false }
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        // we only handle URLs (i.e. not text, image, or other draggable things)
-        registerForDraggedTypes([NSPasteboard.PasteboardType(UTType.url.identifier)])
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("Class only supports programmatic initialization")
-    }
-
-    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        let location = sender.draggingLocation
-        lastDragLocation = location
-        return dragOperation(location)
-    }
-
-    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        let location = sender.draggingLocation
-        if location != lastDragLocation { lastDragLocation = location }
-        return dragOperation(location)
-    }
-
-    override func draggingExited(_ sender: NSDraggingInfo?) {
-        resetDraggingState(true)
-    }
-
-    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        defer { resetDraggingState(false) }
-        let target = targetView(sender.draggingLocation) ?? dragTarget
-        let appUrl = target?.window_?.application.bundleURL
-        let urls = (sender.draggingPasteboard.readObjects(forClasses: [NSURL.self]) as? [URL]) ?? []
-        guard DragAndDropResolver.canDrop(hasTarget: target != nil, hasWindow: target?.window_ != nil, hasAppBundleURL: appUrl != nil, urlCount: urls.count),
-              let appUrl else { return false }
-        // `openApplication` reports the launch outcome on a background queue, long after AppKit
-        // needs this return value. So the drop is accepted on the guard above, and a failed launch
-        // is only logged.
-        NSWorkspace.shared.open(urls, withApplicationAt: appUrl, configuration: NSWorkspace.OpenConfiguration()) { _, error in
-            if let error { Logger.error { "drag-and-drop failed to open urls: \(error)" } }
-        }
-        App.hideUi()
-        return true
-    }
-
-    override func concludeDragOperation(_ sender: NSDraggingInfo?) {
-        resetDraggingState(false)
-    }
-
-    private func dragOperation(_ location: NSPoint) -> NSDragOperation {
-        let target = targetView(location)
-        let pastDeadzone = target != nil && (window.map { CursorEvents.isAllowedToReactToPointerMovement($0.convertPoint(toScreen: location)) } ?? false)
-        let decision = DragAndDropResolver.dragOver(
-            hasTarget: target != nil,
-            pastDeadzone: pastDeadzone,
-            targetChanged: dragTarget !== target,
-            movedBeyondResetRadius: DragAndDropResolver.movedBeyondResetRadius(from: timerResetLocation, to: location, resetRadius: Self.dragAndDropTimerResetDistance))
-        switch decision {
-        case .noTarget:
-            resetDraggingState(true)
-            return []
-        case .inDeadzone:
-            return .link
-        case .track(let restartTimer):
-            if let target {
-                dragTarget = target
-                if restartTimer { restartDraggingTimer(location) }
-                target.mouseMovedCallback()
-            }
-            return .link
-        }
-    }
-
-    private func restartDraggingTimer(_ location: NSPoint) {
-        timerResetLocation = location
-        dragAndDropTimer?.invalidate()
-        dragAndDropTimer = Timer(timeInterval: Self.dragAndDropTimerDelay, repeats: false, block: { [weak self] _ in
-            guard let self, let dragTarget = self.dragTarget else { return }
-            dragTarget.mouseUpCallback()
-        })
-        dragAndDropTimer?.tolerance = 0.2
-        if let dragAndDropTimer { RunLoop.main.add(dragAndDropTimer, forMode: .common) }
-    }
-
-    func cancelDraggingTimer() {
-        dragAndDropTimer?.invalidate()
-        dragAndDropTimer = nil
-    }
-
-    private func resetDraggingState(_ resetHoveredWindow: Bool) {
-        lastDragLocation = nil
-        dragTarget = nil
-        timerResetLocation = nil
-        dragAndDropTimer?.invalidate()
-        dragAndDropTimer = nil
-        if resetHoveredWindow { TilesView.tileOverView.resetHoveredWindow() }
-    }
-
-    private func targetView(_ location: NSPoint) -> TileView? {
-        let overlay = TilesView.tileOverView
-        return overlay.findTarget(overlay.convert(location, from: nil))
-    }
 }
 
 class FlippedView: NSView {

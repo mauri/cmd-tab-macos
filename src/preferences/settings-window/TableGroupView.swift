@@ -60,11 +60,6 @@ class TableGroupSetView: NSStackView {
                 if !lastViewWasTableGroup { flushOthers() }
                 continuousTableGroups.append(view)
                 lastViewWasTableGroup = true
-            } else if view is IllustratedImageThemeView {
-                lastViewWasTableGroup = false
-                flushTableGroups()
-                flushOthers()
-                addTools([view])
             } else {
                 if lastViewWasTableGroup { flushTableGroups() }
                 continuousOthers.append(view)

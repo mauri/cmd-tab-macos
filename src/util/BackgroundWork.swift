@@ -4,7 +4,7 @@ import Foundation
 class BackgroundWork {
     // we use Threads when the APIs we observe require a RunLoop (e.g. CGEvent.tapCreate, AXObserverGetRunLoopSource, CFMessagePortCreateRunLoopSource)
     // when possible, we prefer OperationQueues
-    static var keyboardAndMouseAndTrackpadEventsThread: BackgroundThreadWithRunLoop!
+    static var keyboardAndMouseEventsThread: BackgroundThreadWithRunLoop!
     static var missionControlThread: BackgroundThreadWithRunLoop!
     static var cliEventsThread: BackgroundThreadWithRunLoop!
     static var axSemanticsThread: BackgroundThreadWithRunLoop!
@@ -32,7 +32,7 @@ class BackgroundWork {
         // we time key repeat on a background queue. We handle their consequence on the main-thread
         repeatingKeyQueue = LabeledOperationQueue("repeatingKey", .userInteractive, 1)
         // we listen to as any keyboard events as possible on a background thread, as it's more available/reliable than the main thread
-        keyboardAndMouseAndTrackpadEventsThread = BackgroundThreadWithRunLoop("inputDevices", .userInteractive)
+        keyboardAndMouseEventsThread = BackgroundThreadWithRunLoop("inputDevices", .userInteractive)
         // we main Mission Control state on a background thread. We protect reads from main-thread with an NSLock
         missionControlThread = BackgroundThreadWithRunLoop("missionControl", .userInteractive)
         // we listen to CLI commands (CFMessagePort events)

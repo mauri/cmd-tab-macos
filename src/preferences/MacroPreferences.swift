@@ -13,32 +13,6 @@ enum MenubarIconPreference: CaseIterable, MacroPreference {
     }
 }
 
-enum GesturePreference: CaseIterable, MacroPreference {
-    case disabled
-    case threeFingerHorizontalSwipe
-    case threeFingerVerticalSwipe
-    case fourFingerHorizontalSwipe
-    case fourFingerVerticalSwipe
-
-    var localizedString: LocalizedString {
-        switch self {
-            case .disabled: return NSLocalizedString("Disabled", comment: "")
-            case .threeFingerHorizontalSwipe: return NSLocalizedString("3-finger Horizontal Swipe", comment: "")
-            case .threeFingerVerticalSwipe: return NSLocalizedString("3-finger Vertical Swipe", comment: "")
-            case .fourFingerHorizontalSwipe: return NSLocalizedString("4-finger Horizontal Swipe", comment: "")
-            case .fourFingerVerticalSwipe: return NSLocalizedString("4-finger Vertical Swipe", comment: "")
-        }
-    }
-
-    func isHorizontal() -> Bool {
-        return self == .threeFingerHorizontalSwipe || self == .fourFingerHorizontalSwipe
-    }
-
-    func isThreeFinger() -> Bool {
-        return self == .threeFingerHorizontalSwipe || self == .threeFingerVerticalSwipe
-    }
-}
-
 enum LanguagePreference: CaseIterable, MacroPreference {
     case systemDefault
     case indonesian
@@ -110,13 +84,11 @@ enum LanguagePreference: CaseIterable, MacroPreference {
 enum ShortcutStylePreference: CaseIterable, SfSymbolMacroPreference {
     case focusOnRelease
     case doNothingOnRelease
-    case searchOnRelease
 
     var localizedString: LocalizedString {
         switch self {
             case .focusOnRelease: return NSLocalizedString("Focus", comment: "")
             case .doNothingOnRelease: return NSLocalizedString("Hold", comment: "")
-            case .searchOnRelease: return NSLocalizedString("Search", comment: "")
         }
     }
 
@@ -124,7 +96,6 @@ enum ShortcutStylePreference: CaseIterable, SfSymbolMacroPreference {
         switch self {
             case .focusOnRelease: return .cursorarrowRays
             case .doNothingOnRelease: return .pauseRectangle
-            case .searchOnRelease: return .magnifyingglass
         }
     }
 }
@@ -139,22 +110,6 @@ enum ShowHowPreference: CaseIterable, MacroPreference {
             case .show: return NSLocalizedString("Show", comment: "")
             case .showAtTheEnd: return NSLocalizedString("Show at the end", comment: "")
             case .hide: return NSLocalizedString("Hide", comment: "")
-        }
-    }
-}
-
-enum WindowOrderPreference: CaseIterable, MacroPreference {
-    case recentlyFocused
-    case recentlyCreated
-    case alphabetical
-    case space
-
-    var localizedString: LocalizedString {
-        switch self {
-            case .recentlyFocused: return NSLocalizedString("Recently Focused First", comment: "")
-            case .recentlyCreated: return NSLocalizedString("Recently Created First", comment: "")
-            case .alphabetical: return NSLocalizedString("Alphabetical Order", comment: "")
-            case .space: return NSLocalizedString("Space Order", comment: "")
         }
     }
 }
@@ -227,18 +182,6 @@ enum TitleTruncationPreference: CaseIterable, MacroPreference {
     }
 }
 
-enum GroupAppsPreference: CaseIterable, MacroPreference {
-    case mainWindow
-    case allWindows
-
-    var localizedString: LocalizedString {
-        switch self {
-            case .mainWindow: return NSLocalizedString("Show one window per app", comment: "")
-            case .allWindows: return NSLocalizedString("Show all windows", comment: "")
-        }
-    }
-}
-
 /// Mirrors `showTabsAsWindows` as a 2-case enum so the per-shortcut UI renders a dropdown rather
 /// than a switch. Persistence is by index (`"0"` / `"1"`), so `singleWindow` MUST stay at index 0
 /// and `separateWindows` at index 1 — the migration that converts the old `"true"`/`"false"` Bool
@@ -287,30 +230,6 @@ enum ShowTitlesPreference: CaseIterable, MacroPreference {
             case .windowTitle: return WidthHeightImage(name: "show_running_windows")
             case .appName: return WidthHeightImage(name: "show_running_applications")
             case .appNameAndWindowTitle: return WidthHeightImage(name: "show_running_applications_windows")
-        }
-    }
-}
-
-enum AppearanceStylePreference: CaseIterable, ImageMacroPreference {
-    case thumbnails
-    case appIcons
-    case titles
-
-    var localizedString: LocalizedString {
-        switch self {
-            case .thumbnails: return NSLocalizedString("Thumbnails", comment: "")
-            case .appIcons: return NSLocalizedString("App Icons", comment: "")
-            case .titles: return NSLocalizedString("Titles", comment: "")
-        }
-    }
-
-    var image: WidthHeightImage {
-        let width = CGFloat(150)
-        let height = width / 1.6
-        switch self {
-            case .thumbnails: return WidthHeightImage(width: width, height: height, name: "thumbnails")
-            case .appIcons: return WidthHeightImage(width: width, height: height, name: "app_icons")
-            case .titles: return WidthHeightImage(width: width, height: height, name: "titles")
         }
     }
 }

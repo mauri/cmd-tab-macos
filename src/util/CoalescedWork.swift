@@ -38,12 +38,6 @@ class RepaintCoalescer {
         paintAndMeasure(paint)
     }
 
-    #if DEBUG
-    func deferRepaints(milliseconds: Int) {
-        notBeforeNs = now() + UInt64(max(0, milliseconds)) * 1_000_000
-    }
-    #endif
-
     private func schedule(_ nowNs: UInt64, _ paint: @escaping () -> Void) {
         let delayNs = RepaintCoalescingPolicy.delayNs(nowNs: nowNs, notBeforeNs: notBeforeNs)
         scheduled = true

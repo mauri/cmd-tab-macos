@@ -38,8 +38,6 @@ struct SelectionInputs: Equatable {
     /// True once the user moved the selection themselves. Until then `selectedTarget` is merely where the
     /// DEFAULT landed, not a commitment to that window — see `SwitcherSession.userPickedSelection`.
     let userPickedSelection: Bool
-    let restoreDefaultOnSearchClear: Bool
-    let bestMatchOnSearchChange: Bool
     /// Is the window the user is looking at among the drawn tiles? The default pick steps over the front of
     /// the list because that is normally the window you are ON, and you summoned the switcher to leave it —
     /// but filters can drop it from the list entirely (`Apps to show: Non-active apps`, a blacklisted active
@@ -51,18 +49,6 @@ struct SelectionInputs: Equatable {
     ///
     /// Defaults to `true`: the ordinary case, and what every scenario written before #5941 assumes.
     var currentWindowIsDrawn = true
-    var removalFallback: SelectionRemovalFallback? = nil
-}
-
-/// Who inherits the selection if the window a shortcut action was aimed at leaves the list, recorded at the
-/// press. When the frontmost app's window closes, the app focuses another of its windows, and that focus bump
-/// can reach us before or after the removal. Following ids through both orders lands on different windows,
-/// so the heir is decided from the model list as it stood when the user pressed the key.
-struct SelectionRemovalFallback: Equatable {
-    let target: String
-    /// Hidden tab siblings first (after closing one tab, the same window stays, drawn by another tab), then
-    /// the visible windows after the target, then the ones before it, nearest first.
-    let candidates: [String]
 }
 
 /// One window of the frontmost app, seen the way "is the window the user is looking at drawn?" needs it.
@@ -89,7 +75,7 @@ enum SelectionDecision: Equatable {
     /// `selectedTarget` first, then move selection to `index`.
     case resetThenSelect(Int)
 
-    /// "From scratch" but list has nothing to land on (e.g. search-clear with no visible).
+    /// "From scratch" but list has nothing to land on.
     /// Wrapper: clear hovered + reset `selectedTarget`; leave `selectedIndex`.
     case resetWithoutSelection
 
@@ -109,23 +95,15 @@ enum SelectionResolver {
         return windows.first { id($0) == target }
     }
 
-    /// Reconcile the rendered selection with the current model. Search and default-selection rules take
-    /// precedence until the user commits to a target; a missing target is replaced by a visible neighbor.
+    /// Reconcile the rendered selection with the current model. Default-selection rules take precedence
+    /// until the user commits to a target; a missing target is replaced by a visible neighbor.
     static func decide(_ i: SelectionInputs) -> SelectionDecision {
-        // 1) Search-clear path takes precedence — runs even when no visible windows.
-        if i.restoreDefaultOnSearchClear {
-            return resetInitialPick(i)
-        }
-        // 2) Empty visible list.
+        // 1) Empty visible list.
         let visibleIndexes = i.list.indices.filter { i.list[$0].visible }
-        guard let firstVisibleIndex = visibleIndexes.first else {
+        guard !visibleIndexes.isEmpty else {
             return .clearTargetAndHover
         }
-        // 3) Search-best-match path.
-        if i.bestMatchOnSearchChange {
-            return .selectAt(firstVisibleIndex)
-        }
-        // 4) Re-pick from scratch while the selection is still just the DEFAULT — no target yet, or the user
+        // 2) Re-pick from scratch while the selection is still just the DEFAULT — no target yet, or the user
         // hasn't moved it. The window set is still settling as the switcher opens (tabs group, Spaces settle),
         // so a default computed a moment ago may no longer BE the second visible window; re-deriving keeps it
         // meaning "the window you were on before". Only a target the USER chose is followed by id below —
@@ -134,15 +112,11 @@ enum SelectionResolver {
         if i.selectedTarget == nil || !i.userPickedSelection {
             return resetInitialPick(i)
         }
-        // 5) Try to restore the user's chosen target by id.
+        // 3) Try to restore the user's chosen target by id.
         if let targetIndex = findTarget(i.list, i.selectedTarget) {
             return .selectAt(targetIndex)
         }
-        // 6) Target gone after a shortcut action — hand the selection to the heir recorded at the press.
-        if let heir = removalHeir(i) {
-            return .selectAt(heir)
-        }
-        // 7) Target gone — adapt to the closest visible.
+        // 4) Target gone — adapt to the closest visible.
         return adapt(i, visibleIndexes: visibleIndexes, lastVisible: visibleIndexes.last!)
     }
 
@@ -264,19 +238,6 @@ enum SelectionResolver {
         case .application(let windows): return currentWindowIsDrawn(windows)
         case .unknown: return true
         }
-    }
-
-    static func removalFallback(_ list: [SelectionWindow], target: String, tabSiblings: [String]) -> SelectionRemovalFallback? {
-        guard let index = list.firstIndex(where: { $0.id == target }) else { return nil }
-        let after = list[(index + 1)...].filter { $0.visible }.map { $0.id }
-        let before = list[..<index].reversed().filter { $0.visible }.map { $0.id }
-        let hiddenSiblings = tabSiblings.filter { id in list.contains { $0.id == id && !$0.visible } }
-        return SelectionRemovalFallback(target: target, candidates: hiddenSiblings + after + before)
-    }
-
-    private static func removalHeir(_ i: SelectionInputs) -> Int? {
-        guard let fallback = i.removalFallback, fallback.target == i.selectedTarget else { return nil }
-        return fallback.candidates.lazy.compactMap { findTarget(i.list, $0) }.first
     }
 
     /// Find the user's chosen window by id, returning its current index if visible.

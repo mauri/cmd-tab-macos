@@ -11,17 +11,8 @@ class KeyboardEventsTestable {
 
 @discardableResult
 func handleKeyboardEvent(_ globalId: Int?, _ shortcutState: ShortcutState?, _ keyCode: UInt32?,
-                         _ modifiers: NSEvent.ModifierFlags?, _ isARepeat: Bool, _ event: NSEvent? = nil,
+                         _ modifiers: NSEvent.ModifierFlags?, _ isARepeat: Bool,
                          _ recordedHoldRelease: Bool = false) -> Bool {
-    if let event, shouldAbsorbSearchEditingKeyDown(event) {
-        switch TilesView.handleSearchEditingKeyDown(event) {
-        case .handled: return true
-        case .passToField:
-            TilesView.giveTheFieldTheCaretNow()
-            return false
-        case .passToShortcuts: break
-        }
-    }
     logKeyboardEvent(globalId, shortcutState, keyCode, modifiers, isARepeat)
     let someShortcutTriggered = triggerMatchingShortcuts(globalId, shortcutState, keyCode, modifiers,
                                                           isARepeat, recordedHoldRelease)
@@ -54,13 +45,6 @@ private func settleLostHoldRelease(_ recordedHoldRelease: Bool = false) {
     guard let session = SwitcherSession.current else { return }
     ControlsTab.shortcuts[Preferences.indexToName("holdShortcut", session.shortcutIndex)]?
         .settleLostRelease(recordedHoldRelease)
-}
-
-private func shouldAbsorbSearchEditingKeyDown(_ event: NSEvent?) -> Bool {
-    guard let event, event.type == .keyDown, SwitcherSession.isActive, TilesPanel.shared.isKeyWindow, TilesView.isSearchEditing else {
-        return false
-    }
-    return true
 }
 
 private func triggerMatchingShortcuts(_ globalId: Int?, _ shortcutState: ShortcutState?, _ keyCode: UInt32?,

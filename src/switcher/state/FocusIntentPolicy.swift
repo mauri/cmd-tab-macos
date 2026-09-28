@@ -151,25 +151,4 @@ class FocusIntents {
     func isAwaitingAnswer(from pid: pid_t) -> Bool {
         withPolicy { $0.awaitedAnswer(now: ProcessInfo.processInfo.systemUptime)?.pid == pid }
     }
-
-    #if DEBUG
-    private var refusalArmedForQa = false
-
-    /// **Fault injection (`--qa-refuse-next-focus`): the next focus operation makes none of its OS calls**, as
-    /// if macOS had refused the switch. That is the state #6055 is about, a switch AltTab asked for and the OS
-    /// never carried out, and no app can be made to refuse one on demand.
-    func refuseNextForQa() {
-        lock.lock()
-        refusalArmedForQa = true
-        lock.unlock()
-    }
-
-    func consumeRefusalForQa() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        let armed = refusalArmedForQa
-        refusalArmedForQa = false
-        return armed
-    }
-    #endif
 }

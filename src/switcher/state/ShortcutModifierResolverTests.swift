@@ -2,10 +2,9 @@ import XCTest
 
 /// Pins the branch order of `ShortcutModifierResolver.matches` (the decision extracted from
 /// `ATShortcut.modifiersMatch`). Pure data in, `Bool` out — no AppKit, no globals. `ATShortcut` is
-/// the thin adapter that feeds these inputs from `SwitcherSession` / `ControlsTab` / `TilesView`.
+/// the thin adapter that feeds these inputs from `SwitcherSession` / `ControlsTab`.
 ///
 /// Groups: A holdShortcut ("contains at least") · B nextWindow base-key during a session ·
-/// C the search-editing gate for modifier-only shortcuts (#5781, the previousWindow = ⇧ regression) ·
 /// D default exact / exact+hold matching.
 final class ShortcutModifierResolverTests: XCTestCase {
 
@@ -16,12 +15,10 @@ final class ShortcutModifierResolverTests: XCTestCase {
 
     /// `matches` with the common defaults spelled out; each test overrides only what it exercises.
     private func match(event: UInt32, shortcut: UInt32, hold: UInt32 = option,
-                       isHold: Bool = false, isNextWindow: Bool = false, sessionActive: Bool = false,
-                       isModifierOnly: Bool = false, isEditing: Bool = false, hasCommand: Bool = false) -> Bool {
+                       isHold: Bool = false, isNextWindow: Bool = false, sessionActive: Bool = false) -> Bool {
         ShortcutModifierResolver.matches(
             eventModifiers: event, shortcutModifiers: shortcut, holdModifiers: hold,
-            isHoldShortcut: isHold, isNextWindowShortcut: isNextWindow, sessionActive: sessionActive,
-            isModifierOnly: isModifierOnly, isSearchEditing: isEditing, shortcutHasCommandModifier: hasCommand)
+            isHoldShortcut: isHold, isNextWindowShortcut: isNextWindow, sessionActive: sessionActive)
     }
 
     // MARK: - A. holdShortcut: event contains at least the shortcut's modifiers
@@ -48,41 +45,18 @@ final class ShortcutModifierResolverTests: XCTestCase {
                              isNextWindow: true, sessionActive: false))
     }
 
-    // MARK: - C. Search-editing gate for modifier-only shortcuts (previousWindow = ⇧, #5781)
-
-    func testModifierOnlyBareDoesNotMatchWhileEditing() {
-        // The regression: bare ⇧ while editing is uppercasing input, not "select previous window".
-        XCTAssertFalse(match(event: Self.shift, shortcut: Self.shift, isModifierOnly: true, isEditing: true))
-    }
-
-    func testModifierOnlyWithHoldMatchesWhileEditing() {
-        // ⌥⇧ navigates, as outside search.
-        XCTAssertTrue(match(event: Self.shift | Self.option, shortcut: Self.shift, isModifierOnly: true, isEditing: true))
-    }
-
-    func testModifierOnlyBareMatchesWhenNotEditing() {
-        // The gate is editing-only: in a normal session, bare ⇧ still selects the previous window.
-        XCTAssertTrue(match(event: Self.shift, shortcut: Self.shift, isModifierOnly: true, isEditing: false))
-    }
-
-    // MARK: - D. Default matching (exact, or exact + hold), incl. key shortcuts while editing
+    // MARK: - D. Default matching (exact, or exact + hold)
 
     func testKeyShortcutMatchesExactModifiers() {
         XCTAssertTrue(match(event: Self.command, shortcut: Self.command))
     }
 
     func testKeyShortcutMatchesShortcutPlusHold() {
-        // e.g. closeWindow = W (no modifiers) triggered as ⌥W: event = hold, shortcut = 0.
+        // a key with no modifiers, pressed with the hold modifier: event = hold, shortcut = 0.
         XCTAssertTrue(match(event: Self.option, shortcut: 0))
     }
 
     func testKeyShortcutFailsWithExtraModifier() {
         XCTAssertFalse(match(event: Self.command | Self.shift, shortcut: Self.command))
-    }
-
-    func testKeyShortcutNotGatedWhileEditing() {
-        // Key shortcuts (not modifier-only) keep default matching even while editing — they are gated
-        // upstream in `routeKey`, not here. ⌥W still matches.
-        XCTAssertTrue(match(event: Self.option, shortcut: 0, isModifierOnly: false, isEditing: true))
     }
 }

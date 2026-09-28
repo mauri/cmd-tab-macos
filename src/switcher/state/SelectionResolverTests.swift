@@ -9,7 +9,6 @@ import XCTest
 ///   - InitialPick (A): first call after the switcher opens (`selectedTarget == nil`)
 ///   - PreserveTarget (B): list reorders but the user's chosen tile stays selected (#5665)
 ///   - TargetRemoved (C): user's window closed / filtered out
-///   - SearchMode (D): search filter / clear interactions
 ///   - EdgeCases (E): corruption, single-window flips, multi-step sequences
 final class SelectionResolverTests: XCTestCase {
 
@@ -33,8 +32,6 @@ final class SelectionResolverTests: XCTestCase {
                        // defaults to true so the existing target-preservation cases read as what they model:
                        // a target the USER picked. The default-selection cases pass false explicitly.
                        userPickedSelection: Bool = true,
-                       restoreDefaultOnSearchClear: Bool = false,
-                       bestMatchOnSearchChange: Bool = false,
                        // defaults to "the list is the length it was at the summon", i.e. nothing arrived —
                        // the cases about a window appearing behind the switcher pass the shorter count.
                        visibleCountAtSummon: Int? = nil,
@@ -47,8 +44,6 @@ final class SelectionResolverTests: XCTestCase {
                         useLastFocusedRule: useLastFocusedRule,
                         visibleCountAtSummon: visibleCountAtSummon ?? list.filter { $0.visible }.count,
                         userPickedSelection: userPickedSelection,
-                        restoreDefaultOnSearchClear: restoreDefaultOnSearchClear,
-                        bestMatchOnSearchChange: bestMatchOnSearchChange,
                         currentWindowIsDrawn: currentWindowIsDrawn)
     }
 
@@ -87,7 +82,7 @@ final class SelectionResolverTests: XCTestCase {
         XCTAssertEqual(SelectionResolver.decide(i), .resetThenSelect(1))
     }
 
-    /// A6. All windows filtered out (e.g. by search). Same as A1 — empty visible list.
+    /// A6. All windows filtered out. Same as A1 — empty visible list.
     func testInitialPickAllInvisible() {
         let list = [w("a", visible: false), w("b", visible: false), w("c", visible: false)]
         let i = inputs(list: list)
@@ -267,8 +262,8 @@ final class SelectionResolverTests: XCTestCase {
         XCTAssertEqual(SelectionResolver.decide(i), .selectAt(1))
     }
 
-    /// C2. Target still in `list` but filtered out by `visible == false` (e.g. search match miss
-    /// or app went to a non-visible space). Same flow as C1 — target lookup excludes invisible.
+    /// C2. Target still in `list` but filtered out by `visible == false` (e.g. the app went to a
+    /// non-visible space). Same flow as C1 — target lookup excludes invisible.
     func testTargetBecameInvisible() {
         let list = [w("a"), w("b", visible: false), w("c")]
         let i = inputs(list: list, selectedIndex: 1, selectedTarget: "b")
@@ -288,86 +283,6 @@ final class SelectionResolverTests: XCTestCase {
         let list = [w("other")]
         let i = inputs(list: list, selectedIndex: 0, selectedTarget: "target")
         XCTAssertEqual(SelectionResolver.decide(i), .selectAt(0))
-    }
-
-    /// C6. Closing the frontmost window A1 makes its app focus A2. Whether that focus bump lands before or
-    /// after the removal, the selection ends on A2, the window after A1 when the user pressed the key.
-    func testActionHeirIsTheSameWhicheverOrderFocusAndRemovalArrive() {
-        let fallback = SelectionResolver.removalFallback([w("A1"), w("A2"), w("B")], target: "A1", tabSiblings: [])
-        var focusFirst = inputs(list: [w("A2"), w("A1"), w("B")], selectedIndex: 0, selectedTarget: "A1")
-        focusFirst.removalFallback = fallback
-        XCTAssertEqual(SelectionResolver.decide(focusFirst), .selectAt(1))
-        var thenRemoval = inputs(list: [w("A2"), w("B")], selectedIndex: 1, selectedTarget: "A1")
-        thenRemoval.removalFallback = fallback
-        XCTAssertEqual(SelectionResolver.decide(thenRemoval), .selectAt(0))
-        var removalFirst = inputs(list: [w("A2"), w("B")], selectedIndex: 0, selectedTarget: "A1")
-        removalFirst.removalFallback = fallback
-        XCTAssertEqual(SelectionResolver.decide(removalFirst), .selectAt(0))
-    }
-
-    /// C7. Closing a native tab leaves its window open, drawn by a tab that was hidden at the press. That tab
-    /// keeps the selection wherever it sorts, ahead of the window that was next.
-    func testActionHeirPrefersTheTabSiblingThatTookTheTile() {
-        let before = [w("X"), w("T1"), w("Y"), w("T2", visible: false)]
-        var i = inputs(list: [w("X"), w("Y"), w("T2")], selectedIndex: 1, selectedTarget: "T1")
-        i.removalFallback = SelectionResolver.removalFallback(before, target: "T1", tabSiblings: ["T1", "T2"])
-        XCTAssertEqual(SelectionResolver.decide(i), .selectAt(2))
-    }
-
-    /// C7b. With tabs shown as separate windows, a sibling is an ordinary tile: the next window inherits.
-    func testActionHeirIgnoresTabSiblingsThatWereAlreadyDrawn() {
-        let before = [w("X"), w("T1"), w("Y"), w("T2")]
-        var i = inputs(list: [w("X"), w("Y"), w("T2")], selectedIndex: 1, selectedTarget: "T1")
-        i.removalFallback = SelectionResolver.removalFallback(before, target: "T1", tabSiblings: ["T1", "T2"])
-        XCTAssertEqual(SelectionResolver.decide(i), .selectAt(1))
-    }
-
-    /// C8. Quitting an app takes its other windows too; the heir is the first neighbor still drawn.
-    func testActionHeirSkipsNeighborsThatLeftToo() {
-        var i = inputs(list: [w("X"), w("A2", visible: false), w("B")], selectedIndex: 1, selectedTarget: "A1")
-        i.removalFallback = SelectionResolver.removalFallback([w("X"), w("A1"), w("A2"), w("B")], target: "A1", tabSiblings: [])
-        XCTAssertEqual(SelectionResolver.decide(i), .selectAt(2))
-    }
-
-    /// C9. Nothing drawn after the target: the heir is the nearest window before it, wherever it moved to.
-    func testActionHeirFallsBackToTheNearestPrecedingWindow() {
-        var i = inputs(list: [w("Y"), w("X")], selectedIndex: 2, selectedTarget: "A1")
-        i.removalFallback = SelectionResolver.removalFallback([w("X"), w("Y"), w("A1")], target: "A1", tabSiblings: [])
-        XCTAssertEqual(SelectionResolver.decide(i), .selectAt(0))
-    }
-
-    /// C10. A fallback recorded for another window is ignored: the plain rule applies.
-    func testActionHeirIgnoredForAnotherTarget() {
-        var i = inputs(list: [w("A2"), w("X"), w("B")], selectedIndex: 2, selectedTarget: "Y")
-        i.removalFallback = SelectionResolver.removalFallback([w("X"), w("A1"), w("A2"), w("B")], target: "A1", tabSiblings: [])
-        XCTAssertEqual(SelectionResolver.decide(i), .selectAt(2))
-    }
-
-    // MARK: - D. Search-mode interactions
-
-    /// D1. User types a search query that produces a new best match — jump to firstVisible.
-    func testSearchBestMatchOnSearchChange() {
-        let list = [w("a", visible: false), w("b"), w("c")]
-        let i = inputs(list: list, selectedIndex: 0, selectedTarget: "a",
-                       bestMatchOnSearchChange: true)
-        XCTAssertEqual(SelectionResolver.decide(i), .selectAt(1))
-    }
-
-    /// D2. User cleared a non-empty search query — restore the default initial pick.
-    func testSearchRestoreDefaultOnClear() {
-        let list = [w("a"), w("b"), w("c")]
-        let i = inputs(list: list, selectedIndex: 0, selectedTarget: "a",
-                       restoreDefaultOnSearchClear: true)
-        // Same flow as A3 — default rules, picks index 1.
-        XCTAssertEqual(SelectionResolver.decide(i), .resetThenSelect(1))
-    }
-
-    /// D3. Target preservation works the same whether or not search is active — the resolver has no
-    /// search-empty branch, and this pins that it never grows one.
-    func testTargetPreservedInSearchMode() {
-        let list = [w("p", focusOrder: 0), w("a", focusOrder: 1), w("b", focusOrder: 2)]
-        let i = inputs(list: list, selectedIndex: 2, selectedTarget: "b")
-        XCTAssertEqual(SelectionResolver.decide(i), .selectAt(2))
     }
 
     // MARK: - E. Edge cases
@@ -471,14 +386,6 @@ final class SelectionResolverTests: XCTestCase {
         let filtered = inputs(list: list, useLastFocusedRule: true, currentWindowIsDrawn: false)
         XCTAssertEqual(SelectionResolver.decide(drawn), .resetThenSelect(1))
         XCTAssertEqual(SelectionResolver.decide(filtered), .resetThenSelect(1))
-    }
-
-    /// F10. Clearing a search query restores the default pick, and the restored default is the #5941 one.
-    func testSearchRestoreDefaultOnClearHonorsTheFilteredOutCurrentWindow() {
-        let list = [w("C1"), w("C2"), w("C3")]
-        let i = inputs(list: list, selectedIndex: 2, selectedTarget: "C3",
-                       restoreDefaultOnSearchClear: true, currentWindowIsDrawn: false)
-        XCTAssertEqual(SelectionResolver.decide(i), .resetThenSelect(0))
     }
 
     /// F11. Once the USER has moved the selection it is a commitment, followed by id however the list

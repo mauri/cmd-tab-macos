@@ -23,15 +23,9 @@ class TileOverView: FlippedView {
     // MARK: - Mouse hover management
 
     func updateHover() {
-        guard let scrollView, !scrollView.isCurrentlyScrolling, !TilesView.hasMarkedText(), !ContextMenuEvents.isMenuOpen else { return }
+        guard let scrollView, !scrollView.isCurrentlyScrolling else { return }
         let location = convert(TilesPanel.shared.mouseLocationOutsideOfEventStream, from: nil)
         let newTarget = findTarget(location)
-        if let target = newTarget ?? previousTarget {
-            let statusFrame = target.convert(target.statusIcons.frame, to: superview)
-            if statusFrame.contains(location) {
-                target.statusIcons.ensureTooltipsInstalled()
-            }
-        }
         guard newTarget !== previousTarget else { return }
         caTransaction {
             if let newTarget {

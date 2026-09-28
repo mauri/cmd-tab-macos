@@ -44,8 +44,7 @@ class ATShortcut {
         let session = SwitcherSession.current
         let holdModifiersCleaned = ControlsTab.shortcuts[Preferences.indexToName("holdShortcut", session?.shortcutIndex ?? 0)]?.shortcut.carbonModifierFlags.cleaned() ?? 0
         let shortcutModifiersCleaned = shortcut.carbonModifierFlags.cleaned()
-        // The match decision (incl. the search-editing gate for modifier-only shortcuts like
-        // previousWindow = ⇧) is a pure kernel so its branch order is unit-tested; see
+        // The match decision is a pure kernel so its branch order is unit-tested; see
         // `ShortcutModifierResolverTests`. This stays a thin adapter that gathers the inputs.
         return ShortcutModifierResolver.matches(
             eventModifiers: modifiers.cleaned(),
@@ -53,10 +52,7 @@ class ATShortcut {
             holdModifiers: holdModifiersCleaned,
             isHoldShortcut: id.hasPrefix("holdShortcut"),
             isNextWindowShortcut: id.hasPrefix("nextWindowShortcut"),
-            sessionActive: session != nil,
-            isModifierOnly: shortcut.keyCode == .none,
-            isSearchEditing: TilesView.isSearchEditing,
-            shortcutHasCommandModifier: (shortcutModifiersCleaned & (UInt32(cmdKey) | UInt32(controlKey))) != 0)
+            sessionActive: session != nil)
     }
 
     func shouldTrigger() -> Bool {
@@ -66,7 +62,7 @@ class ATShortcut {
                 return true
             }
             if triggerPhase == .up, let session, index == nil || index == session.shortcutIndex,
-               !session.forceDoNothingOnRelease, Preferences.effectiveShortcutStyle(session.shortcutIndex) == .focusOnRelease {
+               !session.forceDoNothingOnRelease, Preferences.shortcutStyle == .focusOnRelease {
                 return true
             }
         }
@@ -98,7 +94,7 @@ class ATShortcut {
     /// `nextWindowShortcut` has cycled, the release commits one tile PAST what the user asked for.
     func settleLostRelease(_ recordedHoldRelease: Bool = false) {
         guard let session = SwitcherSession.current, !session.forceDoNothingOnRelease,
-              Preferences.effectiveShortcutStyle(session.shortcutIndex) == .focusOnRelease,
+              Preferences.shortcutStyle == .focusOnRelease,
               id == Preferences.indexToName("holdShortcut", session.shortcutIndex) else { return }
         let currentModifiers = cocoaToCarbonFlags(ModifierFlags.current)
         let isUpNow = currentModifiers != (currentModifiers | shortcut.carbonModifierFlags)

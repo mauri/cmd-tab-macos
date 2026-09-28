@@ -63,7 +63,7 @@ class KeyboardEvents {
             let modifiers = NSEvent.ModifierFlags(rawValue: UInt(cgEvent.flags.rawValue))
             let isARepeat = cgEvent.getIntegerValueField(.keyboardEventAutorepeat) != 0
             DispatchQueue.main.async {
-                handleKeyboardEvent(nil, nil, UInt32(kVK_Escape), modifiers, isARepeat, nil)
+                handleKeyboardEvent(nil, nil, UInt32(kVK_Escape), modifiers, isARepeat)
             }
             return nil
         case .tapDisabledByUserInput, .tapDisabledByTimeout:
@@ -198,7 +198,7 @@ class KeyboardEvents {
         localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { (event: NSEvent) in
             let keyCode = event.type == .keyDown ? UInt32(event.keyCode) : nil
             let isARepeat = event.type == .keyDown ? event.isARepeat : false
-            let shouldAbsorbEvent = handleKeyboardEvent(nil, nil, keyCode, event.modifierFlags, isARepeat, event)
+            let shouldAbsorbEvent = handleKeyboardEvent(nil, nil, keyCode, event.modifierFlags, isARepeat)
             return shouldAbsorbEvent ? nil : event
         }
     }
@@ -238,7 +238,7 @@ class KeyboardEvents {
 
     private static func addToKeyboardRunLoop(_ tap: CFMachPort) {
         let runLoopSource = CFMachPortCreateRunLoopSource(nil, tap, 0)
-        CFRunLoopAddSource(BackgroundWork.keyboardAndMouseAndTrackpadEventsThread.runLoop, runLoopSource, .commonModes)
+        CFRunLoopAddSource(BackgroundWork.keyboardAndMouseEventsThread.runLoop, runLoopSource, .commonModes)
     }
 
     private static func addGlobalHandlerIfNeeded(_ shortcut: Shortcut) {
@@ -248,7 +248,7 @@ class KeyboardEvents {
                 var id = EventHotKeyID()
                 GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &id)
                 let globalId = Int(id.id)
-                handleKeyboardEvent(globalId, .down, nil, nil, false, nil,
+                handleKeyboardEvent(globalId, .down, nil, nil, false,
                                     KeyboardEvents.claimRecordedRelease(globalId))
                 return noErr
             }, eventTypes.count, &eventTypes, nil, &hotKeyPressedEventHandler)

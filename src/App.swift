@@ -87,18 +87,14 @@ class App: AppCenterApplication {
         return true
     }
 
-    /// The rest of the dismissal, none of it visible. Kept behind the focus request because
-    /// `TilesView.endSearchSession` can stall on the OS text-input services (#5981).
+    /// The rest of the dismissal, none of it visible, kept behind the focus request.
     private static func endHideUi() {
         MainThreadStall.step()
         // Two event-server round trips (`tapIsEnabled`, then `tapEnable`), measured at up to 8ms on
         // macOS 26.6.2. Behind the focus request rather than in front of it: the tap's callback already
         // passes Esc through once `SwitcherSession.isActive` is false, so nothing absorbs a key in the gap.
         KeyboardEvents.updateEscapeAbsorptionTap() // session closed: stop tapping keyDown (#5766)
-        TilesView.endSearchSession()
-        ContextMenuEvents.toggle(false)
         CursorEvents.toggle(false)
-        TrackpadEvents.reset()
         Tooltips.hideAll()
         MainMenu.toggle(true)
     }
@@ -113,9 +109,6 @@ class App: AppCenterApplication {
     static func focusTarget() {
         guard SwitcherSession.isActive else { return } // already hidden
         let selectedWindow = Windows.selectedWindow()
-        #if DEBUG
-        CliServer.recordSelectionCommit(selectedWindow?.cgWindowId)
-        #endif
         Logger.info { selectedWindow?.debugId }
         focusSelectedWindow(selectedWindow)
     }
@@ -232,8 +225,6 @@ class App: AppCenterApplication {
     }
 
     static func cycleSelection(_ direction: Direction, allowWrap: Bool = true) {
-        SwitcherSession.current?.searchDiscovery.lastNavigationAt = ProcessInfo.processInfo.systemUptime
-        (TilesView.scrollView?.documentView as? TilesDocumentView)?.cancelDraggingTimer()
         CursorEvents.resetDeadzone()
         if direction == .up || direction == .down {
             TilesView.navigateUpOrDown(direction, allowWrap: allowWrap)
@@ -278,12 +269,6 @@ class App: AppCenterApplication {
         else { switcherUiRepaintCoalescer.request(repaint) }
     }
 
-    #if DEBUG
-    static func deferRepaintsForQa(_ milliseconds: Int) {
-        switcherUiRepaintCoalescer.deferRepaints(milliseconds: milliseconds)
-    }
-    #endif
-
     static func refreshUi(_ preserveScrollPosition: Bool = false) {
         MainThreadStall.step()
         guard SwitcherSession.isActive else { return }
@@ -318,18 +303,12 @@ class App: AppCenterApplication {
                 Windows.endStartupOrderSeeding()
                 isVeryFirstSummon = false
             }
-            if !session.isFirstSummon { SearchDiscoveryHint.shared.cancel() }
             session.isFirstSummon = false
             session.shortcutIndex = shortcutIndex
             // Hide instantly so the rebuild for a different shortcut (Appearance change, layout
             // recalc) is invisible. `TilesPanel.show()` flips alpha back to 1 once everything is
             // in its final state. No-op on first summon (panel was orderOut'd with alpha=0).
             TilesPanel.shared.alphaValue = 0
-            let shouldStartInSearchMode = Preferences.effectiveShortcutStyle(shortcutIndex) == .searchOnRelease
-            TilesView.startSearchSession(shouldStartInSearchMode)
-            if shouldStartInSearchMode {
-                session.forceDoNothingOnRelease = true
-            }
             if !Windows.updatesBeforeShowing() { hideUi(); return }
             Windows.setInitialSelectedAndHoveredWindowIndex()
             // The very first summon of a launch can beat the launch inventory: AltTab has been alive for a
@@ -375,9 +354,6 @@ class App: AppCenterApplication {
         refreshUi()
         guard SwitcherSession.isActive else { return }
         TilesPanel.shared.show()
-        if TilesView.isSearchEditing {
-            TilesView.enableSearchEditing()
-        }
         KeyRepeatTimer.startRepeatingKeyNextWindow()
     }
 
@@ -410,8 +386,7 @@ class App: AppCenterApplication {
     /// up and hops its "granted" verdict to main, where `preStartupPermissionsPassed` is set, so a
     /// main-thread stall longer than one tick queues this function twice. A second run starts a second
     /// input-events thread while the first keeps running (the old RunLoop still retains the old taps'
-    /// sources, so both threads get every event), and the gesture state in `TrackpadEvents` is unlocked on
-    /// the grounds that one thread reaches it. Two of them segfault in `GestureTracker.prune`.
+    /// sources, so both threads get every event).
     static func continueAppLaunchAfterPermissionsAreGranted() {
         guard !didContinueAppLaunch else {
             Logger.warning { "launch continuation asked for twice; ignoring" }
@@ -454,13 +429,11 @@ class App: AppCenterApplication {
             checkIfShortcutsShouldBeDisabled(frontmostApp.focusedWindow, frontmostApp)
         }
         CursorEvents.observe()
-        TrackpadEvents.observe()
         // With the other taps, not with `WindowServerEvents`: it needs Accessibility (`tapCreate` returns nil
         // without it) and the input-devices runloop, neither of which exists before this point.
         WindowAttentionEvents.observe()
         // Needs the AX runloop `BackgroundWork.start()` created, so it cannot go with the launch-time setup.
         AxObserverRegistry.shared.startRecoveryTicks()
-        CliEvents.observe()
         App.sparkleDelegate = SparkleDelegate()
         App.updaterController = SPUStandardUpdaterController(
             startingUpdater: false,
@@ -479,7 +452,6 @@ class App: AppCenterApplication {
             pendingShowSettingsWindow = false
             showSettingsWindow()
         }
-        SearchDiscoveryHint.shared.initialize()
         Logger.info { "Finished launching AltTab" }
     }
 }

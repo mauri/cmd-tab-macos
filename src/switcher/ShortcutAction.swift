@@ -17,36 +17,8 @@ enum ShortcutActions {
         ShortcutAction(id: "vimCycleLeft", perform: { App.cycleSelection(.left) }),
         ShortcutAction(id: "vimCycleUp", perform: { App.cycleSelection(.up) }),
         ShortcutAction(id: "vimCycleDown", perform: { App.cycleSelection(.down) }),
-        ShortcutAction(id: "cancelShortcut", perform: {
-            guard let session = SwitcherSession.current else { return }
-            let entry: SearchEntryStyle = Preferences.effectiveShortcutStyle(session.shortcutIndex) == .searchOnRelease ? .startedInSearch : .toggledMidSession
-            switch SearchModeResolver.escape(mode: TilesView.searchMode, entry: entry) {
-                case .exitSearch: TilesView.disableSearchMode()
-                case .closeSwitcher: App.hideUi()
-            }
-        }),
-        ShortcutAction(id: "closeWindowShortcut", perform: { onSelectedWindow(closesOneTab: true) { $0.close() } }),
-        ShortcutAction(id: "minDeminWindowShortcut", perform: { onSelectedWindow { $0.minDemin() } }),
-        ShortcutAction(id: "toggleFullscreenWindowShortcut", perform: { onSelectedWindow { $0.toggleFullscreen() } }),
-        ShortcutAction(id: "quitAppShortcut", perform: { onSelectedWindow { $0.application.quit() } }),
-        ShortcutAction(id: "hideShowAppShortcut", perform: { onSelectedWindow { $0.application.hideOrShow() } }),
-        ShortcutAction(id: "searchShortcut", perform: {
-            guard SwitcherSession.isActive else { return }
-            TilesView.toggleSearchModeFromShortcut()
-        }),
+        ShortcutAction(id: "cancelShortcut", perform: { App.hideUi() }),
     ]
-
-    /// Acting on a tile is a commitment to THAT window, so from here the selection follows it by id rather
-    /// than being re-derived as the default pick. Every one of these actions reorders the list under the
-    /// open switcher — fullscreen moves the window to its own Space, minimize/hide/quit move the MRU — and
-    /// the default pick means "the second visible window", so it stayed on the SLOT while the window the
-    /// user aimed at slid out of it. Live: F fullscreened the selected window, the list reordered, and a
-    /// second F to undo fullscreened a different app's window instead (measured live).
-    private static func onSelectedWindow(closesOneTab: Bool = false, _ act: (Window) -> Void) {
-        guard let window = Windows.selectedWindow() else { return }
-        Windows.commitToActionTarget(window, closesOneTab: closesOneTab)
-        act(window)
-    }
 
     private static let byId: [String: ShortcutAction] = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
 

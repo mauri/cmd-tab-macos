@@ -58,10 +58,6 @@ class Window {
     var application: Application
     var rowIndex: Int?
     var debugId: String!
-    var lastSearchQuery: String?
-    var swAppMatchSpan: Range<Int>?
-    var swTitleMatchSpan: Range<Int>?
-    var swBestSimilarity = 0.0
 
     /// Forwards every `TrackedWindow` field by name — `window.title` resolves to the backing record,
     /// `window.isFullscreen = true` writes through. Replaces a stack of one-per-field computed
@@ -137,7 +133,6 @@ class Window {
         self.isFullscreen = isFullscreen ?? false
         self.isMinimized = isMinimized ?? false
         self.isFullscreenMirrored = false
-        lastSearchQuery = nil
     }
 
     /// DERIVED "phantom" verdict, computed at read time and never latched — so a window whose Space
@@ -224,91 +219,6 @@ class Window {
         return WindowElementAcquisition.element(for: wid, pid: application.pid, route: .otherSpaceViaBruteForce)
     }
 
-    func canBeClosed() -> Bool {
-        return !self.isWindowlessApp
-    }
-
-    func close() {
-        if !canBeClosed() {
-            NSSound.beep()
-            return
-        }
-        if let altTabWindow = altTabWindow() {
-            altTabWindow.close()
-            return
-        }
-        guard let element = axUiElement else { return }
-        let wasFullscreen = self.isFullscreen
-        BackgroundWork.accessibilityCommandsQueue.addOperation {
-            if wasFullscreen {
-                try? element.setAttribute(kAXFullscreenAttribute, false)
-                // minimizing is ignored if sent immediatly; we wait for the de-fullscreen animation to be over
-                BackgroundWork.accessibilityCommandsQueue.addOperationAfter(deadline: .now() + .seconds(1)) {
-                    if let closeButton_ = try? element.attributes([kAXCloseButtonAttribute]).closeButton {
-                        try? closeButton_.performAction(kAXPressAction)
-                    }
-                }
-            } else {
-                if let closeButton_ = try? element.attributes([kAXCloseButtonAttribute]).closeButton {
-                    try? closeButton_.performAction(kAXPressAction)
-                }
-            }
-        }
-        // No optimistic removal: the window leaves Windows.list only when the OS confirms it's gone, and
-        // three signals can say so. The app's own AXUIElementDestroyed is normally first and is the only one
-        // that reaches a close while the window is minimized, hidden, on another Space or a background tab.
-        // The order-out (816) covers the on-screen close for an app that has never been seen to deliver a
-        // destroy, via an AX-liveness probe. The WindowServer's destroy (804) is the last backstop, and it can
-        // lag by seconds — measured 7.4s behind the destroy — or never fire for an app that retains its
-        // CGWindow. The switcher reflects OS state, never a predicted one.
-    }
-
-    /// Every one of these commands is an AX write. A window kept on WindowServer evidence alone has no
-    /// element to write to, so it fails safely with the same beep an ineligible window gets rather than
-    /// force-unwrapping nil.
-    func canBeMinDeminOrFullscreened() -> Bool {
-        return !self.isWindowlessApp && !self.isTabbed && (axUiElement != nil || altTabWindow() != nil)
-    }
-
-    func minDemin() {
-        if !canBeMinDeminOrFullscreened() {
-            NSSound.beep()
-            return
-        }
-        if let altTabWindow = altTabWindow() {
-            self.isMinimized ? altTabWindow.deminiaturize(nil) : altTabWindow.miniaturize(nil)
-            return
-        }
-        BackgroundWork.accessibilityCommandsQueue.addOperation { [weak self] in
-            guard let self, let element = self.axUiElement else { return }
-            if self.isFullscreen {
-                try? element.setAttribute(kAXFullscreenAttribute, false)
-                // minimizing is ignored if sent immediatly; we wait for the de-fullscreen animation to be over
-                BackgroundWork.accessibilityCommandsQueue.addOperationAfter(deadline: .now() + .seconds(1)) { [weak self] in
-                    guard let self, let element = self.axUiElement else { return }
-                    try? element.setAttribute(kAXMinimizedAttribute, true)
-                }
-            } else {
-                try? element.setAttribute(kAXMinimizedAttribute, !self.isMinimized)
-            }
-        }
-    }
-
-    func toggleFullscreen() {
-        if !canBeMinDeminOrFullscreened() {
-            NSSound.beep()
-            return
-        }
-        if let altTabWindow = altTabWindow() {
-            altTabWindow.toggleFullScreen(nil)
-            return
-        }
-        BackgroundWork.accessibilityCommandsQueue.addOperation { [weak self] in
-            guard let self, let element = self.axUiElement else { return }
-            try? element.setAttribute(kAXFullscreenAttribute, !self.isFullscreen)
-        }
-    }
-
     func focus() {
         MainThreadStall.step()
         if let altTabWindow = altTabWindow() {
@@ -370,9 +280,6 @@ class Window {
     /// z-order re-asserts the newer intent on its way out — see FocusIntentPolicySpecs.md.
     private func applyFocus(_ generation: FocusGeneration, _ originSpaceId: CGSSpaceID, _ originFrontPid: pid_t?) {
         guard FocusIntents.shared.mayProceed(generation) else { return }
-        #if DEBUG
-        if FocusIntents.shared.consumeRefusalForQa() { return refusedForQa() }
-        #endif
         if self.isMinimized, let element = axUiElement {
             try? element.setAttribute(kAXMinimizedAttribute, false)
         }
@@ -397,14 +304,6 @@ class Window {
         let pid = application.pid
         DispatchQueue.main.async { WindowServerEvents.readFocusedWindowAfterFocusing(pid) }
     }
-
-    #if DEBUG
-    /// The operation still asks where focus landed, as a real one the OS ignored would.
-    private func refusedForQa() {
-        Logger.info { "QA: refused the focus of #\(self.cgWindowId ?? 0)" }
-        hearWhereFocusLanded()
-    }
-    #endif
 
     /// Steps 2 and 3. Step 3 is the only AX-dependent step: 1 and 2 use the wid and psn directly, so a window
     /// with no element still gets fronted and made key — which is the whole point of keeping a hung app's

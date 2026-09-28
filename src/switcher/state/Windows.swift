@@ -44,44 +44,16 @@ class Windows {
     }
     private static var surfaceRetirements = [SurfaceRetirement]()
     private static var lastWindowActivityType = WindowActivityType.none
-    private static var shouldSelectBestMatchOnSearchChange = false
-    private static var shouldRestoreDefaultSelectionOnSearchClear = false
 
     static func shouldDisplay(_ window: Window) -> Bool {
-        window.shouldShowTheUser && Search.matches(window, query: (SwitcherSession.current?.searchQuery ?? ""))
-    }
-
-    static func updateSearchQuery(_ query: String) {
-        let previousTrimmedQuery = Search.normalizedQuery(SwitcherSession.current?.searchQuery ?? "")
-        let newTrimmedQuery = Search.normalizedQuery(query)
-        SwitcherSession.current?.searchQuery = query
-        guard let session = SwitcherSession.current else {
-            shouldSelectBestMatchOnSearchChange = false
-            shouldRestoreDefaultSelectionOnSearchClear = false
-            sort()
-            return
-        }
-        if previousTrimmedQuery != newTrimmedQuery {
-            if newTrimmedQuery.isEmpty {
-                shouldRestoreDefaultSelectionOnSearchClear = !previousTrimmedQuery.isEmpty
-                shouldSelectBestMatchOnSearchChange = false
-            } else {
-                shouldSelectBestMatchOnSearchChange = true
-                shouldRestoreDefaultSelectionOnSearchClear = false
-                session.hoveredIndex = nil
-                session.hoveredTarget = nil
-            }
-        }
-        sort()
+        window.shouldShowTheUser
     }
 
     static func voiceOverWindow(_ windowIndex: Int = (SwitcherSession.current?.selectedIndex ?? 0)) {
         guard SwitcherSession.isActive && TilesPanel.shared.isKeyWindow else { return }
-        if TilesView.isSearchEditing { return }
         // it seems that sometimes makeFirstResponder is called before the view is visible
         // and it creates a delay in showing the main window; calling it with some delay seems to work around this
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(10)) {
-            if TilesView.isSearchEditing { return }
             let window = TilesView.recycledViews[windowIndex]
             if window.window_ != nil && window.window != nil {
                 TilesPanel.shared.makeFirstResponder(window)
@@ -119,33 +91,8 @@ class Windows {
         for window in list {
             refreshIfWindowShouldBeShownToTheUser(window, filters)
         }
-        refreshWhichWindowsToShowTheUser()
         sort()
         return true
-    }
-
-    static func refreshWhichWindowsToShowTheUser() {
-        guard Preferences.showsOneWindowPerApp() else { return }
-        let current = AttentionEngine.currentUserContext
-        for (pid, windows) in Dictionary(grouping: list, by: { $0.application.pid }) {
-            let eligible = windows.filter { $0.shouldShowTheUser }
-            let currentWid = current.pid == pid ? current.wid : nil
-            let lastAttendedWid = AttentionEngine.lastAttendedWindow(pid)
-            let candidates = eligible.map {
-                ApplicationRepresentativeCandidate(id: $0.id,
-                    isCurrentAttention: $0.cgWindowId == currentWid,
-                    isLastAttention: $0.cgWindowId == lastAttendedWid,
-                    isMainWindow: $0.isMainWindow, lastFocusOrder: $0.lastFocusOrder,
-                    creationOrder: $0.creationOrder)
-            }
-            let stableId = SwitcherSession.current?.representativeByPid[pid]
-            guard let representativeId = ApplicationRepresentativeResolver.pick(candidates, stableId: stableId) else { continue }
-            if stableId == nil || !candidates.contains(where: { $0.id == stableId })
-                || candidates.first(where: { $0.id == representativeId })?.isCurrentAttention == true {
-                SwitcherSession.current?.representativeByPid[pid] = representativeId
-            }
-            windows.filter { $0.id != representativeId }.forEach { $0.shouldShowTheUser = false }
-        }
     }
 
     private static func refreshIfWindowShouldBeShownToTheUser(_ window: Window, _ f: WindowFilters) {
@@ -234,19 +181,8 @@ class Windows {
         let inputs = selectionInputs(session)
         let decision = SelectionResolver.decide(inputs)
         Logger.debug { "select decide=\(decision) fromTarget=\(session.selectedTarget ?? "nil") sel=\(session.selectedIndex)" }
-        shouldRestoreDefaultSelectionOnSearchClear = false
-        shouldSelectBestMatchOnSearchChange = false
         applySelectionDecision(decision, session: session)
         reanchorHover(session)
-    }
-
-    /// `closesOneTab`: closing a native tab leaves its window open, drawn by another tab. Minimize, hide,
-    /// quit and fullscreen act on the whole window or app, so its tabs cannot inherit the selection.
-    static func commitToActionTarget(_ window: Window, closesOneTab: Bool) {
-        guard let session = SwitcherSession.current else { return }
-        session.userPickedSelection = true
-        let siblings = closesOneTab ? (window.tabbedSiblingWids ?? []).compactMap { byWindowId[$0]?.id } : []
-        session.removalFallback = SelectionResolver.removalFallback(selectionSnapshot(), target: window.id, tabSiblings: siblings)
     }
 
     /// The kernel's view of this refresh, plus the one measurement that has to be taken on the FIRST one:
@@ -261,14 +197,10 @@ class Windows {
             list: snapshot,
             selectedIndex: session.selectedIndex,
             selectedTarget: session.selectedTarget,
-            useLastFocusedRule: Applications.frontmostPid != nil
-                && Preferences.windowOrder[session.shortcutIndex] != .recentlyFocused,
+            useLastFocusedRule: false,
             visibleCountAtSummon: visibleCountAtSummon,
             userPickedSelection: session.userPickedSelection,
-            restoreDefaultOnSearchClear: shouldRestoreDefaultSelectionOnSearchClear,
-            bestMatchOnSearchChange: shouldSelectBestMatchOnSearchChange,
-            currentWindowIsDrawn: currentWindowIsDrawn(),
-            removalFallback: session.removalFallback)
+            currentWindowIsDrawn: currentWindowIsDrawn())
     }
 
     private static func currentWindowIsDrawn() -> Bool {
@@ -360,7 +292,7 @@ class Windows {
     }
 
     /// `fromRefresh`: the list changed under the switcher, the user did nothing. The hover stays where the
-    /// pointer put it (`reanchorHover` moves it with its window), and a pending `removalFallback` survives.
+    /// pointer put it (`reanchorHover` moves it with its window).
     static func updateSelectedAndHoveredWindowIndex(_ newIndex: Int, _ fromMouse: Bool = false, fromRefresh: Bool = false) {
         guard let session = SwitcherSession.current else { return }
         guard newIndex >= 0 && newIndex < list.count else { return }
@@ -369,7 +301,6 @@ class Windows {
         var index: Int?
         if fromMouse {
             session.userPickedSelection = true
-            session.searchDiscovery.lastNavigationAt = ProcessInfo.processInfo.systemUptime
         }
         if fromMouse && (newIndex != session.hoveredIndex || lastWindowActivityType == .focus) {
             let oldIndex = session.hoveredIndex
@@ -384,11 +315,10 @@ class Windows {
         if !fromMouse && !fromRefresh {
             TilesView.tileOverView.resetHoveredWindow()
         }
-        // Search can replace the best match at the same index, so the selected identity must still move.
+        // The list can put another window at the same index, so the selected identity must still move.
         if (!fromMouse || Preferences.mouseHoverEnabled)
                && (newIndex != session.selectedIndex || session.selectedTarget != newWindow.id || lastWindowActivityType == .hover) {
             let oldIndex = session.selectedIndex
-            if !fromRefresh { session.removalFallback = nil }
             session.selectedIndex = newIndex
             session.selectedTarget = newWindow.id
             TilesView.highlight(oldIndex)
@@ -491,44 +421,12 @@ class Windows {
         }
     }
 
-    /// reordered list based on preferences, keeping the original index
+    /// The switcher lists windows in recently-focused order.
     private static func sort() {
-        let trimmedQuery = Search.normalizedQuery((SwitcherSession.current?.searchQuery ?? ""))
-        let shortcutIndex = (SwitcherSession.current?.shortcutIndex ?? 0)
-        // Hoisted once per sort: locals are captured by the comparator closure so each of the
-        // O(n log n) comparisons reads them directly.
-        let searchActive = !trimmedQuery.isEmpty
-        let windowlessAtEnd = Preferences.showWindowlessApps(shortcutIndex) == .showAtTheEnd
-        let hiddenAtEnd = Preferences.showHiddenWindows(shortcutIndex) == .showAtTheEnd
-        let minimizedAtEnd = Preferences.showMinimizedWindows(shortcutIndex) == .showAtTheEnd
-        let sortType = orderSortType(Preferences.windowOrder(shortcutIndex))
-        // Precompute each window's ordering facts once (O(n) Search calls), then sort on the snapshots.
-        let facts = Dictionary(uniqueKeysWithValues: list.map { (ObjectIdentifier($0), orderWindow($0, trimmedQuery)) })
+        // Precompute each window's ordering facts once, then sort on the snapshots.
+        let facts = Dictionary(uniqueKeysWithValues: list.map { (ObjectIdentifier($0), OrderWindow(state: $0.state, app: $0.application.state)) })
         list.sort {
-            WindowOrderResolver.isOrderedBefore(
-                facts[ObjectIdentifier($0)]!, facts[ObjectIdentifier($1)]!,
-                searchActive: searchActive,
-                windowlessAtEnd: windowlessAtEnd,
-                hiddenAtEnd: hiddenAtEnd,
-                minimizedAtEnd: minimizedAtEnd,
-                sortType: sortType)
-        }
-    }
-
-    private static func orderWindow(_ window: Window, _ query: String) -> OrderWindow {
-        OrderWindow(
-            state: window.state,
-            app: window.application.state,
-            searchMatches: query.isEmpty ? false : Search.matches(window, query: query),
-            searchRelevance: query.isEmpty ? 0 : Search.relevance(for: window, query: query))
-    }
-
-    private static func orderSortType(_ p: WindowOrderPreference) -> OrderSortType {
-        switch p {
-            case .recentlyFocused: return .recentlyFocused
-            case .recentlyCreated: return .recentlyCreated
-            case .alphabetical: return .alphabetical
-            case .space: return .space
+            WindowOrderResolver.isOrderedBefore(facts[ObjectIdentifier($0)]!, facts[ObjectIdentifier($1)]!, sortType: .recentlyFocused)
         }
     }
 
@@ -835,17 +733,18 @@ struct WindowFilters {
     let screensToShow: ScreensToShowPreference
     let groupTabs: GroupTabsPreference
 
+    /// The filters are fixed: every app, Space, and screen, including minimized, hidden, and fullscreen
+    /// windows. Apps with no open window are left out. Only the exceptions list is configurable.
     static func snapshot() -> WindowFilters {
-        let i = SwitcherSession.current?.shortcutIndex ?? 0
-        return WindowFilters(
+        WindowFilters(
             exceptions: Preferences.exceptions,
-            appsToShow: Preferences.appsToShow[i],
-            showHiddenWindows: Preferences.showHiddenWindows[i],
-            showWindowlessApps: Preferences.showWindowlessApps[i],
-            showFullscreenWindows: Preferences.showFullscreenWindows[i],
-            showMinimizedWindows: Preferences.showMinimizedWindows[i],
-            spacesToShow: Preferences.spacesToShow[i],
-            screensToShow: Preferences.screensToShow[i],
-            groupTabs: Preferences.groupTabs(i))
+            appsToShow: .all,
+            showHiddenWindows: .show,
+            showWindowlessApps: .hide,
+            showFullscreenWindows: .show,
+            showMinimizedWindows: .show,
+            spacesToShow: .all,
+            screensToShow: .all,
+            groupTabs: .singleWindow)
     }
 }

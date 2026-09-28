@@ -71,10 +71,6 @@ enum SettingsSearchIndex {
     /// contents. Each sheet class declares its own `static let searchableStrings: [String]` — keep
     /// those in sync with the sheet's `makeContentView` by convention.
     static func sheetSearchableStrings(forButtonAction action: Selector) -> [String]? {
-        if action == #selector(AppearanceTab.showCustomizeStyleSheet) { return CustomizeStyleSheet.searchableStrings }
-        if action == #selector(AppearanceTab.showAnimationsSheet) { return AnimationsSheet.searchableStrings }
-        if action == #selector(ControlsTab.showShortcutsSettings) { return ShortcutsWhenActiveSheet.searchableStrings }
-        if action == #selector(ControlsTab.showAdditionalControlsSettings) { return AdditionalControlsSheet.searchableStrings }
         return nil
     }
 }

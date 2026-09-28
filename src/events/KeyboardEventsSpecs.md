@@ -17,9 +17,7 @@ the resulting actions.
 - **Missing events**: when an expected event is dropped, the machine recovers where it safely can
   ("save the day") and otherwise degrades predictably ("can not save the day").
 - **Out-of-order events** are tolerated.
-- In-switcher shortcuts (close window) act on the selection.
-- Release behavior depends on style: `doNothingOnRelease` doesn't focus; the search-on-release path does
-  **not** focus the window on release (it enters search instead).
+- Release behavior depends on style: `doNothingOnRelease` doesn't focus.
 - Switching directly from one shortcut slot to another is handled.
 - **Escape**: while the switcher is active (e.g. Option held), Escape fires the cancel shortcut; when the
   switcher is closed, Escape does nothing (AltTab doesn't swallow it).
@@ -42,9 +40,7 @@ Mirrors `KeyboardEventsTests.swift` 1:1.
 - **testInputLogDropsAnUnmatchedClaimAtTheGestureRelease** — if the passive tap never supplies a key-down, its unmatched Carbon claim expires with that physical gesture.
 - **testInputLogRecordsOnlySwitchingChordsSoTypingCannotEvictADelayedHotkey** — key-downs that are not a registered switching chord are never recorded, so shifted typing during a stall neither fills the log nor evicts the hotkey's own key-down.
 - **testInputLogMatchesTheChordWithCapsLockLit** — Caps Lock in the tap's flags does not stop a hotkey pairing with its physical key-down.
-- **testCloseWindowShortcut** — the close-window shortcut acts on the selection mid-session.
 - **testOnReleaseDoNothing** — `doNothingOnRelease` style: releasing the modifier doesn't focus.
-- **testOnReleaseToggleSearchModeDoesNotFocus** — search-on-release: releasing enters search, doesn't focus the window.
 - **testTransitionFromOneShortcutToAnother** — switching slots mid-stream is handled.
 - **testEscapeFiresCancelShortcutWhileSwitcherActiveWithOptionHeld** — Escape → cancel while active.
 - **testEscapeDoesNothingWhenSwitcherIsClosed** — Escape is a no-op when the switcher is closed.

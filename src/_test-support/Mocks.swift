@@ -50,14 +50,11 @@ class Appearance {
     static var searchMatchForegroundColor: NSColor = .black
 }
 
-// Minimal stubs so `TableGroupView.swift` / `SidebarList.swift` compile in the test target without
-// dragging in `AppearanceTab` (which `IllustratedImageThemeView` lives in) or the full
-// `SettingsWindow`. Tests never instantiate these — they only need the symbols to resolve.
+// Minimal stub so `TableGroupView.swift` / `SidebarList.swift` compile in the test target without
+// dragging in the full `SettingsWindow`. Tests never instantiate it — they only need the symbol.
 enum SettingsWindow {
     static let contentWidth = CGFloat(700)
 }
-
-class IllustratedImageThemeView: NSView {}
 
 // `EventClosure` is declared in `LabelAndControl.swift` (app target only). `TableGroupView`
 // uses it in its row-builder signatures, so mirror the typealias here.
@@ -102,19 +99,7 @@ extension NSView {
     }
 }
 
-enum SearchKeyResult {
-    case handled
-    case passToField
-    case passToShortcuts
-}
-
-class TilesViewMock {
-    var isSearchEditing = false
-    func handleSearchEditingKeyDown(_ event: NSEvent) -> SearchKeyResult { return .passToField }
-}
-
 class TilesPanelMock {
-    var tilesView = TilesViewMock()
     var isKeyWindow = false
 }
 
@@ -132,19 +117,6 @@ class TilesPanel {
         get { App.app.tilesPanel.isKeyWindow }
         set { App.app.tilesPanel.isKeyWindow = newValue }
     }
-}
-
-class TilesView {
-    static var isSearchEditing: Bool {
-        get { App.app.tilesPanel.tilesView.isSearchEditing }
-        set { App.app.tilesPanel.tilesView.isSearchEditing = newValue }
-    }
-
-    static func handleSearchEditingKeyDown(_ event: NSEvent) -> SearchKeyResult {
-        return App.app.tilesPanel.tilesView.handleSearchEditingKeyDown(event)
-    }
-
-    static func giveTheFieldTheCaretNow() {}
 }
 
 class ControlsTab {
@@ -172,12 +144,6 @@ class ControlsTab {
         "focusWindowShortcut": ATShortcut(Shortcut(keyEquivalent: " ")!, "focusWindowShortcut", .local, .down),
         "previousWindowShortcut": ATShortcut(Shortcut(keyEquivalent: "⇧")!, "previousWindowShortcut", .local, .down),
         "cancelShortcut": ATShortcut(Shortcut(keyEquivalent: "⎋")!, "cancelShortcut", .local, .down),
-        "searchShortcut": ATShortcut(Shortcut(keyEquivalent: "s")!, "searchShortcut", .local, .down),
-        "closeWindowShortcut": ATShortcut(Shortcut(keyEquivalent: "w")!, "closeWindowShortcut", .local, .down),
-        "minDeminWindowShortcut": ATShortcut(Shortcut(keyEquivalent: "m")!, "minDeminWindowShortcut", .local, .down),
-        "toggleFullscreenWindowShortcut": ATShortcut(Shortcut(keyEquivalent: "f")!, "toggleFullscreenWindowShortcut", .local, .down),
-        "quitAppShortcut": ATShortcut(Shortcut(keyEquivalent: "q")!, "quitAppShortcut", .local, .down),
-        "hideShowAppShortcut": ATShortcut(Shortcut(keyEquivalent: "h")!, "hideShowAppShortcut", .local, .down),
     ]
     static var shortcuts = defaultShortcuts
 
@@ -233,16 +199,11 @@ class Preferences {
         guard let number = name.last?.wholeNumberValue else { return 0 }
         return number - 1
     }
-
-    static func effectiveShortcutStyle(_ index: Int) -> ShortcutStylePreference {
-        return shortcutStyle
-    }
 }
 
 enum ShortcutStylePreference: CaseIterable {
     case focusOnRelease
     case doNothingOnRelease
-    case searchOnRelease
 }
 
 class ModifierFlags {

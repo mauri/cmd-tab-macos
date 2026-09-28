@@ -1,16 +1,14 @@
 import XCTest
 
 /// Pins the switcher's window display order: `WindowOrderResolver.isOrderedBefore`. Each test builds
-/// two `OrderWindow`s (a `WindowState` snapshot + `ApplicationState` + the query-derived search
-/// rank) differing in one fact and asserts the comparator's answer under the right knobs. Pure data
+/// two `OrderWindow`s (a `WindowState` snapshot + `ApplicationState`) differing in one fact and asserts the comparator's answer under the right knobs. Pure data
 /// in, `Bool` out.
 ///
-/// Groups: A search ranking · B show-at-the-end buckets · C recentlyFocused · D recentlyCreated ·
+/// Groups: B show-at-the-end buckets · C recentlyFocused · D recentlyCreated ·
 /// E alphabetical · F space · G tiebreak/symmetry.
 final class WindowOrderResolverTests: XCTestCase {
 
-    private func w(searchMatches: Bool = false, searchRelevance: Double = 0,
-                   isWindowlessApp: Bool = false, isHidden: Bool = false, isMinimized: Bool = false,
+    private func w(isWindowlessApp: Bool = false, isHidden: Bool = false, isMinimized: Bool = false,
                    isOnAllSpaces: Bool = false, spaceIndexes: [Int] = [],
                    lastFocusOrder: Int = 0, creationOrder: Int = 0,
                    appName: String = "App", windowTitle: String = "Title") -> OrderWindow {
@@ -19,28 +17,7 @@ final class WindowOrderResolverTests: XCTestCase {
                                 isOnAllSpaces: isOnAllSpaces, spaceIds: [], spaceIndexes: spaceIndexes,
                                 lastFocusOrder: lastFocusOrder, creationOrder: creationOrder, title: windowTitle)
         let app = ApplicationState(pid: 0, bundleIdentifier: nil, localizedName: appName, isHidden: isHidden)
-        return OrderWindow(state: state, app: app, searchMatches: searchMatches, searchRelevance: searchRelevance)
-    }
-
-    // MARK: - A. Search ranking
-
-    func testSearchMatchedSortsBeforeUnmatched() {
-        XCTAssertTrue(WindowOrderResolver.isOrderedBefore(w(searchMatches: true), w(searchMatches: false),
-                                                          searchActive: true))
-        XCTAssertFalse(WindowOrderResolver.isOrderedBefore(w(searchMatches: false), w(searchMatches: true),
-                                                           searchActive: true))
-    }
-
-    func testSearchHigherRelevanceSortsFirst() {
-        XCTAssertTrue(WindowOrderResolver.isOrderedBefore(w(searchMatches: true, searchRelevance: 2),
-                                                          w(searchMatches: true, searchRelevance: 1),
-                                                          searchActive: true))
-    }
-
-    func testSearchEqualRelevanceTiebreaksByLastFocusOrder() {
-        XCTAssertTrue(WindowOrderResolver.isOrderedBefore(w(searchMatches: true, searchRelevance: 1, lastFocusOrder: 0),
-                                                          w(searchMatches: true, searchRelevance: 1, lastFocusOrder: 1),
-                                                          searchActive: true))
+        return OrderWindow(state: state, app: app)
     }
 
     // MARK: - B. Show-at-the-end buckets
@@ -148,49 +125,5 @@ final class WindowOrderResolverTests: XCTestCase {
     func testEqualWindowsAreNotOrderedBeforeEachOther() {
         let a = w(lastFocusOrder: 3)
         XCTAssertFalse(WindowOrderResolver.isOrderedBefore(a, a, sortType: .recentlyFocused))
-    }
-}
-
-final class ApplicationRepresentativeResolverTests: XCTestCase {
-    private func c(_ id: String, current: Bool = false, attended: Bool = false,
-                   main: Bool = false, focus: Int = 0, creation: Int = 0)
-        -> ApplicationRepresentativeCandidate {
-        ApplicationRepresentativeCandidate(id: id, isCurrentAttention: current,
-            isLastAttention: attended, isMainWindow: main, lastFocusOrder: focus,
-            creationOrder: creation)
-    }
-
-    func testCurrentAttentionWinsEveryFallback() {
-        let candidates = [c("main", main: true, focus: 0), c("current", current: true, focus: 9)]
-        XCTAssertEqual(ApplicationRepresentativeResolver.pick(candidates, stableId: "main"), "current")
-    }
-
-    func testStableRepresentativeWinsWhileStillEligible() {
-        let candidates = [c("stable", focus: 8), c("attended", attended: true, focus: 0)]
-        XCTAssertEqual(ApplicationRepresentativeResolver.pick(candidates, stableId: "stable"), "stable")
-    }
-
-    func testLastConfirmedAttentionWinsBeforeAxMain() {
-        let candidates = [c("main", main: true, focus: 0), c("attended", attended: true, focus: 7)]
-        XCTAssertEqual(ApplicationRepresentativeResolver.pick(candidates, stableId: nil), "attended")
-    }
-
-    func testAxMainIsColdStartFallback() {
-        let candidates = [c("mru", focus: 0), c("main", main: true, focus: 5)]
-        XCTAssertEqual(ApplicationRepresentativeResolver.pick(candidates, stableId: nil), "main")
-    }
-
-    func testMruAndCreationBreakFallbackTiesDeterministically() {
-        XCTAssertEqual(ApplicationRepresentativeResolver.pick([
-            c("old", focus: 2, creation: 1), c("new", focus: 1, creation: 1),
-        ], stableId: nil), "new")
-        XCTAssertEqual(ApplicationRepresentativeResolver.pick([
-            c("old", focus: 1, creation: 1), c("new", focus: 1, creation: 2),
-        ], stableId: nil), "new")
-    }
-
-    func testIneligibleStableRepresentativeDoesNotBlockReplacement() {
-        XCTAssertEqual(ApplicationRepresentativeResolver.pick([c("available")], stableId: "filtered"),
-            "available")
     }
 }

@@ -16,7 +16,7 @@
 ## Summary
 
 `SelectionResolver` decides **which tile is highlighted** while the switcher is open. Every time the
-window list changes (a window opens/closes, an app steals focus, a search query filters the list), the
+window list changes (a window opens/closes, an app steals focus), the
 switcher calls `SelectionResolver.decide(_:)` with a snapshot of the current state and gets back a
 `SelectionDecision` enum; the wrapper (`Windows`) turns that into highlight redraws, scroll-to-visible,
 target bookkeeping, and the preview. Pure data in, `Equatable` decision out — no globals, no AppKit.
@@ -42,17 +42,10 @@ window, releases the shortcut before repaint, and checks the window macOS actual
 
 ## Behavior & edge cases (decision priority order)
 
-1. **Search-clear** (`restoreDefaultOnSearchClear`) takes precedence — re-runs the initial pick even with no visible windows.
-2. **Empty visible list** → `clearTargetAndHover`.
-3. **Search best-match** (`bestMatchOnSearchChange`) → jump to the first visible (best-scored) window.
-4. **No target yet** (`selectedTarget == nil`, first refresh) → "from scratch" initial pick.
-5. **Target still present** → follow it to its new index (`selectAt`).
-6. **Target gone after a shortcut action** (close, minimize, hide, quit, fullscreen) → the heir recorded at the
-   press: after closing a native tab, a sibling tab that was hidden (the same window, now drawn by another
-   tab); then the next drawn window, then the previous ones. Closing the frontmost window `[A1, A2, B]` makes
-   the app focus A2, before or after the removal lands: focus first used to end on B, removal first on A2.
-   Deciding from the list at the press ends on A2 either way. Any selection move by the user drops it.
-7. **Target gone** otherwise → adapt to the closest visible window.
+1. **Empty visible list** → `clearTargetAndHover`.
+2. **No target yet** (`selectedTarget == nil`, first refresh) → "from scratch" initial pick.
+3. **Target still present** → follow it to its new index (`selectAt`).
+4. **Target gone** → adapt to the closest visible window.
 
 `selectedTarget` means two different things, split by `userPickedSelection`: while the user hasn't moved the
 selection it is merely where the DEFAULT landed, so step 4 re-derives it on every refresh; once the user
@@ -121,7 +114,7 @@ so no event can land in between.
 ## Test scenarios
 
 Mirrors `SelectionResolverTests.swift` 1:1. Groups: A initial pick · B preserve target (#5665) ·
-C target removed · D search mode · E edge cases · F current window not drawn (#5941) · G answering that
+C target removed · E edge cases · F current window not drawn (#5941) · G answering that
 question from the frontmost app's windows (#5960) · plus direct helper-kernel checks.
 
 ### A. Initial pick (`selectedTarget == nil`)
@@ -144,22 +137,9 @@ question from the frontmost app's windows (#5960) · plus direct helper-kernel c
 ### C. Target removed / no longer visible
 - **testTargetRemovedAdaptToClosestBelow** — target closed; backfill the target to the window now at that index.
 - **testTargetRemovedSelectedIndexOutOfBounds** — list shrank below `selectedIndex` → closest visible below.
-- **testTargetBecameInvisible** — target filtered out (search or space; same path either way) → closest visible below.
+- **testTargetBecameInvisible** — target filtered out (for example by Space) → closest visible below.
 - **testTargetRemovedAndListEmptied** — nothing left → `clearTargetAndHover`.
 - **testTargetRemovedOnlyOneLeft** — one window remains → select it and backfill the target.
-- **testActionHeirIsTheSameWhicheverOrderFocusAndRemovalArrive** — closing a window whose app focuses the
-  next one lands on that window, whether the focus bump or the removal arrives first.
-- **testActionHeirPrefersTheTabSiblingThatTookTheTile** — closing a native tab selects its window, now drawn by a
-  tab that was hidden, wherever it sorts.
-- **testActionHeirIgnoresTabSiblingsThatWereAlreadyDrawn** — with tabs as separate windows, the next window inherits.
-- **testActionHeirSkipsNeighborsThatLeftToo** — quitting an app skips its other windows.
-- **testActionHeirFallsBackToTheNearestPrecedingWindow** — nothing after the target → nearest window before it.
-- **testActionHeirIgnoredForAnotherTarget** — a fallback recorded for another window is not used.
-
-### D. Search-mode interactions
-- **testSearchBestMatchOnSearchChange** — new query produces a best match → jump to first visible.
-- **testSearchRestoreDefaultOnClear** — cleared query → restore the default initial pick.
-- **testTargetPreservedInSearchMode** — target preservation works the same with search active.
 
 ### E. Edge cases
 - **testEdgeSingleWindowBecomesInvisible** — the only window goes invisible → clear selection.
@@ -184,8 +164,6 @@ question from the frontmost app's windows (#5960) · plus direct helper-kernel c
   first drawn tile does not shift the answer onto raw index 0.
 - **testInitialPickLastFocusedRuleIsUnaffectedByTheFlag** — alphabetical / Space ordering already picked the
   most recently focused DRAWN window; the flag leaves that path alone.
-- **testSearchRestoreDefaultOnClearHonorsTheFilteredOutCurrentWindow** — clearing a query restores the #5941
-  default, not the old one.
 - **testUserPickedTargetIsFollowedWhenTheCurrentWindowIsFilteredOut** — a target the USER picked is still
   followed by id (#5665); the flag only says where the DEFAULT starts.
 - **testInitialPickTopTwoMinimizedIsUnaffectedByTheFlag** — the both-top-minimized edge never stepped over

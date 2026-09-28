@@ -2,15 +2,8 @@ import Cocoa
 
 class TilesPanel: NSPanel {
     override var canBecomeKey: Bool { true }
-    override func accessibilityChildren() -> [Any]? {
-        let children = super.accessibilityChildren() ?? []
-        guard let hint = SearchDiscoveryHint.shared.accessibilityGroup else { return children }
-        return children + [hint]
-    }
     static var maxPossibleAppIconSize = NSSize.zero
     static var shared: TilesPanel!
-    private var frozenTopCenter: NSPoint?
-    private var highWaterHeight: CGFloat = 0
 
     convenience init() {
         self.init(contentRect: .zero, styleMask: .nonactivatingPanel, backing: .buffered, defer: false)
@@ -39,52 +32,21 @@ class TilesPanel: NSPanel {
             guard SwitcherSession.isActive else { return }
             setContentSize(TilesView.contentView.frame.size)
             guard SwitcherSession.isActive else { return }
-            repositionOrFreeze()
+            NSScreen.preferred.repositionPanel(self)
         }
         // prevent further AppKit work
         TilesView.clearNeedsLayout()
-        SearchDiscoveryHint.shared.refreshAfterVisibleWork()
-    }
-
-
-    private func repositionOrFreeze() {
-        let size = frame.size
-        guard TilesView.isSearchModeOn else {
-            NSScreen.preferred.repositionPanel(self)
-            resetFrozenPosition()
-            return
-        }
-        if size.height > highWaterHeight {
-            NSScreen.preferred.repositionPanel(self)
-            highWaterHeight = size.height
-            frozenTopCenter = NSPoint(x: frame.midX, y: frame.maxY)
-        } else if let topCenter = frozenTopCenter {
-            setFrameOrigin(NSPoint(x: topCenter.x - size.width * 0.5, y: topCenter.y - size.height))
-        }
-    }
-
-    func resetFrozenPosition() {
-        frozenTopCenter = nil
-        highWaterHeight = 0
     }
 
     override func orderOut(_ sender: Any?) {
         MainThreadStall.step()
-        SearchDiscoveryHint.shared.cancel()
         TilesView.clearNeedsLayout()
-        if Preferences.fadeOutAnimation {
-            NSAnimationContext.runAnimationGroup(
-                { _ in animator().alphaValue = 0 },
-                completionHandler: { super.orderOut(sender) }
-            )
-        } else {
-            // Not a hedge against a slow `orderOut`: both land in the same CoreAnimation transaction, which
-            // only commits when this runloop turn ends, so nothing here reaches the screen any earlier.
-            // It leaves the panel at alpha 0 for the NEXT summon, which is what lets
-            // `showUiOrCycleSelection` mask a cross-shortcut rebuild and `show()` reveal it atomically.
-            alphaValue = 0
-            super.orderOut(sender)
-        }
+        // Not a hedge against a slow `orderOut`: both land in the same CoreAnimation transaction, which
+        // only commits when this runloop turn ends, so nothing here reaches the screen any earlier.
+        // It leaves the panel at alpha 0 for the NEXT summon, which is what lets
+        // `showUiOrCycleSelection` mask a cross-shortcut rebuild and `show()` reveal it atomically.
+        alphaValue = 0
+        super.orderOut(sender)
     }
 
     func show() {
@@ -101,10 +63,8 @@ class TilesPanel: NSPanel {
         if let session = SwitcherSession.current, session.panelShownAt == nil {
             session.panelShownAt = ProcessInfo.processInfo.systemUptime
         }
-        ContextMenuEvents.toggle(true)
         CursorEvents.toggle(true)
         DispatchQueue.main.async { TilesView.scrollView.flashScrollers() }
-        SearchDiscoveryHint.shared.switcherShown()
     }
 
     static func maxTilesWidth(_ screen: NSScreen = NSScreen.preferred) -> CGFloat {
@@ -149,9 +109,6 @@ extension TilesPanel: NSWindowDelegate {
         // this avoids command+q from quitting AltTab itself, or command+p from printing
         DispatchQueue.main.async {
             MainMenu.toggle(false)
-            if TilesView.isSearchEditing {
-                MainMenu.toggleEditMenu(true)
-            }
         }
         // Refresh the window model once the main run loop next goes idle after showing — i.e. after AppKit has
         // finished ALL the show's main-thread work for this frame. A one-shot kCFRunLoopBeforeWaiting observer

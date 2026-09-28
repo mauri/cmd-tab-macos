@@ -411,8 +411,7 @@ class SettingsWindow: NSWindow {
 
     private func sectionDefinitions() -> [SettingsSectionDefinition] {
         [
-            SettingsSectionDefinition(id: "appearance", title: NSLocalizedString("Appearance", comment: ""), symbol: .paintpalette, builder: AppearanceTab.initTab, registerDynamicSearchContent: nil),
-            SettingsSectionDefinition(id: "controls", title: NSLocalizedString("Controls", comment: ""), symbol: .command, builder: ControlsTab.initTab, registerDynamicSearchContent: ControlsTab.registerSidebarRowsSearchContent),
+            SettingsSectionDefinition(id: "controls", title: NSLocalizedString("Controls", comment: ""), symbol: .command, builder: ControlsTab.initTab, registerDynamicSearchContent: nil),
             SettingsSectionDefinition(id: "general", title: NSLocalizedString("General", comment: ""), symbol: .gearshape, builder: GeneralTab.initTab, registerDynamicSearchContent: nil),
             SettingsSectionDefinition(id: "exceptions", title: NSLocalizedString("Exceptions", comment: ""), symbol: .handRaised, builder: ExceptionsTab.initTab, registerDynamicSearchContent: nil),
         ]
@@ -642,13 +641,7 @@ class SettingsWindow: NSWindow {
             SettingsWindow.trimmedText(segmentedControl.label(forSegment: $0) ?? "")
         }
         if segmentLabels.allSatisfy(\.isEmpty) { return nil }
-        // For tab controls that surface different content per segment (the Filtering / Appearance
-        // / Ordering toggle in ShortcutEditor — and the gesture editor's clone of the same), the
-        // per-segment searchable strings are registered in `ControlsTab.tabSegmentSearchableStrings`.
-        // A query that matches anything in a segment's content lights that segment up yellow —
-        // including content for *unbuilt* panes (the Filtering/Appearance/Ordering panes are
-        // constructed lazily, see `ShortcutEditor.ensurePaneBuilt`).
-        let perSegmentStrings = ControlsTab.tabSegmentSearchableStrings[ObjectIdentifier(segmentedControl)]
+        let perSegmentStrings: [[String]]? = nil
         var matchingSegmentIndexes = [Int]()
         return SettingsSearchHighlightTarget({ query in
             matchingSegmentIndexes = []
@@ -783,11 +776,6 @@ class SettingsWindow: NSWindow {
     }
 
     private static func sheet(forSearchButton button: NSButton) -> SheetWindow? {
-        guard let action = button.action else { return nil }
-        if action == #selector(AppearanceTab.showCustomizeStyleSheet) { return AppearanceTab.customizeStyleSheet }
-        if action == #selector(AppearanceTab.showAnimationsSheet) { return AppearanceTab.animationsSheet }
-        if action == #selector(ControlsTab.showShortcutsSettings) { return ControlsTab.shortcutsWhenActiveSheet }
-        if action == #selector(ControlsTab.showAdditionalControlsSettings) { return ControlsTab.additionalControlsSheet }
         return nil
     }
 
@@ -972,9 +960,6 @@ class SettingsWindow: NSWindow {
     }
 
     private func applySearch(_ query: String) {
-        Popover.shared.updateSearchContext(query) { query, text in
-            SettingsSearch.match(query, in: text)?.ranges ?? []
-        }
         let hasQuery = !SettingsSearch.isQueryEmpty(query)
         let matchingSections = sections.filter { !hasQuery || $0.matches(query) }
         visibleSections = matchingSections
@@ -1030,7 +1015,6 @@ extension SettingsWindow: NSWindowDelegate {
         // close machinery causes objc_release crashes on re-entry.
         DispatchQueue.main.async { [weak self] in
             guard let self, SettingsWindow.shared === self else { return }
-            AppearanceTab.cleanup()
             ControlsTab.cleanup()
             GeneralTab.cleanup()
             ExceptionsTab.cleanup()

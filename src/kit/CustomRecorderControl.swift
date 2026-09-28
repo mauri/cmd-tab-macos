@@ -88,17 +88,9 @@ class CustomRecorderControl: RecorderControl {
         guard ControlsTab.confirmUnassigningConflict(informativeText) else { return }
         switch conflict {
         case .arrow:
-            if let cb = ControlsTab.arrowKeysCheckbox {
-                cb.state = .off
-                ControlsTab.arrowKeysEnabledCallback(cb)
-                LabelAndControl.controlWasChanged(cb, nil)
-            }
+            Preferences.set("arrowKeysEnabled", "false")
         case .vim:
-            if let cb = ControlsTab.vimKeysCheckbox {
-                cb.state = .off
-                ControlsTab.vimKeysEnabledCallback(cb)
-                LabelAndControl.controlWasChanged(cb, nil)
-            }
+            Preferences.set("vimKeysEnabled", "false")
         case .regular(let conflictingId):
             ControlsTab.unassignShortcut(conflictingId)
         }

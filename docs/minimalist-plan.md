@@ -109,21 +109,23 @@ Input methods other than the keyboard:
 
 - `src/events/TrackpadEvents.swift` and `GestureTriggerKernel.swift`
 - `src/events/ScrollwheelEvents.swift`
-- `src/switcher/main-window/DragAndDropResolver.swift`
+- `src/switcher/main-window/DragAndDropResolver.swift` and the drop-a-file-on-a-tile feature. Keep the pass-through of a mouse-up whose mouse-down the switcher never saw, inline in `CursorEvents`, so a file drag that started before the switcher opened still ends.
+- The middle-click that closes a window
 - `Preferences.nextWindowGesture` and `trackpadHapticFeedbackEnabled`
 - Keep `src/events/CursorEvents.swift` and `mouseHoverEnabled`. A click on a row focuses that window, and hover selection stays a preference.
 
 Integrations:
 
-- `src/events/CliEvents.swift` (command line control)
-- `src/events/DockEvents.swift`
+- `src/events/CliEvents.swift` (command line control), with the QA-only hooks it drove
 - `src/events/ContextMenuEvents.swift`
+- Keep `src/events/DockEvents.swift`. It reads the Dock's Mission Control notifications, and the switcher uses that state to decide whether to focus a window.
 
 Window actions inside the switcher:
 
 - `closeWindowShortcut`, `minDeminWindowShortcut`, `toggleFullscreenWindowShortcut`, `quitAppShortcut`, and `hideShowAppShortcut` in `Preferences.swift`
 - `src/switcher/ShortcutAction.swift` cases for these actions
 - `src/switcher/main-window/StatusIconsView.swift`
+- The action heir in `SelectionResolver` (`removalFallback`), which only served these actions
 
 Extra shortcuts:
 
@@ -138,9 +140,16 @@ Visual extras:
 - Fade animations (`fadeOutAnimation`)
 - `src/kit/WindowlessAppIndicator.swift` and `showWindowlessApps`. The list shows only real windows.
 
+Settings for the removed features (moved here from Phase 6, because this phase removes what they configure):
+
+- Reduce `ControlsTab.swift` to one Trigger row and the mouse hover switch. Keep its shortcut registry.
+- Reduce `ShortcutEditor.swift` to the Trigger row and rename it `TriggerBinding.swift`.
+- Delete `OverrideClickResolver.swift`, `AdditionalControlsSheet.swift`, `ShortcutsWhenActiveSheet.swift`, and `src/preferences/settings-window/tabs/appearance/`.
+- Remove `AppearanceStylePreference`, `GesturePreference`, `WindowOrderPreference`, and `GroupAppsPreference`.
+
 Fixed filters:
 
-- With one shortcut, the per-shortcut filters become fixed values: all apps, all Spaces, all screens, show minimized, hidden, and fullscreen windows, and recently focused order. Remove `appsToShow`, `spacesToShow`, `screensToShow`, `showMinimizedWindows`, `showHiddenWindows`, `showFullscreenWindows`, and `windowOrder` from `Preferences.swift`.
+- With one shortcut, the per-shortcut filters become fixed values: all apps, all Spaces, all screens, show minimized, hidden, and fullscreen windows, and recently focused order. Remove `appsToShow`, `spacesToShow`, `screensToShow`, `showMinimizedWindows`, `showHiddenWindows`, `showFullscreenWindows`, `windowOrder`, `showAppsOrWindows`, and `showTabsAsWindows` from `Preferences.swift`. Remove the one-window-per-app mode (`ApplicationRepresentativeResolver`), which `showAppsOrWindows` turned on.
 
 ## Phase 5: remove the auxiliary product features
 
@@ -175,13 +184,11 @@ Keep one settings page with these controls:
 
 Delete these files:
 
-- `src/preferences/settings-window/tabs/appearance/` (the whole folder)
-- `src/preferences/settings-window/tabs/controls/AdditionalControlsSheet.swift` and `ShortcutsWhenActiveSheet.swift`
 - `src/preferences/settings-window/tabs/AcknowledgmentsTab.swift`
 - `src/preferences/settings-window/SettingsSearch.swift`, `SettingsSearchHighlight.swift`, `SettingsSearchIndex.swift`, and `SettingsSectionSearchContent.swift`
 - `src/preferences/settings-window/SidebarList.swift`, if one page replaces the sidebar
 
-Reduce `ControlsTab.swift` (1,058 lines) and `SettingsWindow.swift` (1,344 lines) to the controls in the list above.
+Reduce `SettingsWindow.swift` (1,344 lines) to the controls in the list above.
 
 Delete `src/preferences/PreferencesMigrations.swift`. The app starts from the defaults and does not keep settings from an older install.
 

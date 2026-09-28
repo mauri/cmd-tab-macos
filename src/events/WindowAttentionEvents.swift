@@ -95,7 +95,7 @@ class WindowAttentionEvents {
             TrackingTelemetryRecorder.attentionTapLifecycle(installed: false, enabled: false)
             return
         }
-        guard let runLoop = BackgroundWork.keyboardAndMouseAndTrackpadEventsThread?.runLoop else {
+        guard let runLoop = BackgroundWork.keyboardAndMouseEventsThread?.runLoop else {
             Logger.debug { "attention tap: no runloop to install on" }
             return
         }

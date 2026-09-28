@@ -35,9 +35,9 @@ class Appearance {
     static var searchMatchHighlightColor: NSColor { get { NSColor.systemYellow.withAlphaComponent(0.5) } }
     static var searchMatchForegroundColor: NSColor { get { NSColor(calibratedWhite: 0.12, alpha: 1) } }
 
-    private static var currentSize: AppearanceSizePreference { Preferences.effectiveAppearanceSize(SwitcherSession.activeShortcutIndex) }
+    private static var currentSize: AppearanceSizePreference { Preferences.appearanceSize }
     static var currentTheme: AppearanceThemePreference {
-        let theme = Preferences.effectiveAppearanceTheme(SwitcherSession.activeShortcutIndex)
+        let theme = Preferences.appearanceTheme
         return theme == .system ? NSAppearance.currentDrawing().getThemeName() : theme
     }
 
