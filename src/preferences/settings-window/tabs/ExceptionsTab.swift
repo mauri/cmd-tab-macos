@@ -362,14 +362,6 @@ class ExceptionsTab {
     }
 }
 
-#if DEBUG
-extension ExceptionsTab {
-    static func qaClearHover() {
-        setHoveredRow(nil)
-    }
-}
-#endif
-
 struct AppDisplayInfo {
     let name: String
     let icon: NSImage

@@ -14,19 +14,7 @@ class PermissionsWindow: NSWindow {
         Self.shared = self
     }
 
-    #if DEBUG
-    /// Set by `QaSurfaces` to photograph the window as someone who has not granted anything sees it. The
-    /// permission timer calls `updatePermissionViews` every few seconds, so setting the views once would not hold.
-    static var qaForcedStatus: PermissionStatus?
-    #endif
-
     static func updatePermissionViews() {
-        #if DEBUG
-        if let forced = qaForcedStatus {
-            accessibilityView.updatePermissionStatus(forced)
-            return
-        }
-        #endif
         accessibilityView.updatePermissionStatus(AccessibilityPermission.status)
     }
 

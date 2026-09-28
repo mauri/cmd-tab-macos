@@ -2,8 +2,8 @@ import Cocoa
 import Sparkle
 
 /// Side-effect dispatcher for preference changes. Each branch of `preferenceChanged(_:)`
-/// calls into a domain-specific owner (Menubar, TrackpadEvents, SparkleDelegate, LoginItem,
-/// ProFeature) rather than implementing the side effect inline. Over time each call-site
+/// calls into a domain-specific owner (Menubar, TrackpadEvents, SparkleDelegate, LoginItem)
+/// rather than implementing the side effect inline. Over time each call-site
 /// should subscribe directly to its own preference; this file is a transition scaffold.
 class PreferencesEvents {
     private static var initialized = false
@@ -69,9 +69,6 @@ class PreferencesEvents {
                 }
             }
             return
-        }
-        if LicenseManager.shared.isProLocked && ProFeature.isStoredValuePro(preferenceKey: key) {
-            UpgradeTab.navigateToUpgradeTab()
         }
         SearchDiscoveryHint.shared.cancel()
         ControlsTab.preferenceChanged(key)

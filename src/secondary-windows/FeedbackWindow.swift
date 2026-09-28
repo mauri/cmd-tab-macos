@@ -438,7 +438,7 @@ class FeedbackWindow: NSWindow {
     /// `<details>` wrapping, disclaimer) can change server-side without forcing every
     /// installed AltTab to update.
     private func prepareRequest() -> URLRequest {
-        var request = URLRequest(url: URL(string: Endpoints.feedbackUrl)!)
+        var request = URLRequest(url: URL(string: "https://\(Bundle.main.object(forInfoDictionaryKey: "ApiDomain") as! String)/v1/feedback")!)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")

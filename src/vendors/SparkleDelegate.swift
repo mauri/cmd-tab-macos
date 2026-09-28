@@ -24,7 +24,7 @@ class SparkleDelegate: NSObject, SPUUpdaterDelegate {
     var onNextCheckCompletion: ((UpdateCheckResult) -> Void)?
 
     func feedURLString(for updater: SPUUpdater) -> String? {
-        return Endpoints.appcastUrl
+        return "https://\(Bundle.main.object(forInfoDictionaryKey: "Domain") as! String)/appcast.xml"
     }
 
     func feedParameters(for updater: SPUUpdater, sendingSystemProfile sendingProfile: Bool) -> [[String: String]] {
@@ -34,7 +34,6 @@ class SparkleDelegate: NSObject, SPUUpdaterDelegate {
             ["key": "macos", "value": "\(v.majorVersion).\(v.minorVersion).\(v.patchVersion)"],
             ["key": "arch", "value": Sysctl.run("hw.machine")],
             ["key": "lang", "value": Locale.preferredLanguages.first ?? "unknown"],
-            ["key": "tier", "value": LicenseManager.shared.state.appcastTier],
         ]
     }
 

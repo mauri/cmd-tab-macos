@@ -92,6 +92,8 @@ Before you delete `ProFeature.swift`, make `attemptUse()` return `true` and buil
 
 In `Preferences.swift`, replace each `ProGatedPreferences.<name>.read()` with a direct `CachedUserDefaults` read. This affects `appearanceStyle`, `appearanceSize`, `shortcutStyle`, and `appearanceStyleOverride0`.
 
+Also delete in this phase, because they exist only to feed the Pro prompts or to test them: `src/util/UsageStats.swift` and its tests, `src/debug/QAMenu.swift`, `QaSurfaces.swift`, `QaSheetAnimation.swift`, `Benchmark.swift`, and `src/preferences/settings-window/EmailLineWrap.swift` with its tests. Remove the license activation URL scheme (`CFBundleURLTypes`) from `Info.plist`.
+
 Keychain warning: this phase deletes the license code. If you publish this build with the same bundle ID to people who own license keys, their keys stop working in this build. For a personal build, this does not matter.
 
 ## Phase 4: remove the extra switcher features
@@ -146,8 +148,6 @@ Delete these files:
 
 - `src/secondary-windows/FeedbackWindow.swift`
 - `src/secondary-windows/DebugWindow.swift`, `DebugMenu.swift`, and `DebugProfile.swift`
-- `src/debug/QAMenu.swift`, `QaSheetAnimation.swift`, `QaSurfaces.swift`, and `Benchmark.swift`
-- `src/util/UsageStats.swift` and `UsageStatsTestable.swift`
 - `src/util/MoveToApplicationsFolder.swift`
 - `src/vendors/SparkleDelegate.swift` and `AppCenterCrashes.swift`, with `AppCenterApplication.h` and `AppCenterApplication.m`
 - `src/window-tracking/TrackingTelemetry.swift` and `TrackingTelemetryRecorder.swift`

@@ -112,10 +112,6 @@ class CliServer {
             Logger.info { "QA: refusing the next focus" }
             return noOutput
         }
-        // The visual non-regression test opening each window, sheet, popover, alert and menu in turn.
-        if let reply = QaSurfaces.command(rawValue) {
-            return reply
-        }
         #endif
         // The provider timeline, drained rather than read: each record is reported exactly once, so a test
         // gets the events of its own session and not the whole run's backlog. The harness writes them out as

@@ -3,7 +3,7 @@ import AppCenter
 import AppCenterCrashes
 
 class AppCenterCrash: NSObject {
-    static let secret = Secrets.appCenterSecret
+    static let secret = Bundle.main.object(forInfoDictionaryKey: "AppCenterSecret") as! String
 
     override init() {
         super.init()

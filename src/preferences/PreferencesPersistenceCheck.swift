@@ -8,11 +8,10 @@ import AppKit
 /// appearing until the user resolves the underlying problem; there is no "don't show again" (a suppression
 /// flag couldn't persist anyway, since persistence is exactly what's broken).
 enum PreferencesPersistenceCheck {
-    /// Every suite AltTab persists to. `UserDefaults.standard` is keyed by the bundle id; the others are
-    /// explicit suites (license/Pro-transition state, usage stats). System suites we only read (e.g.
-    /// `com.apple.Finder`) are out of scope.
+    /// Every suite AltTab persists to: `UserDefaults.standard`, keyed by the bundle id. System suites we
+    /// only read (e.g. `com.apple.Finder`) are out of scope.
     static func suiteNames() -> [String] {
-        [App.bundleIdentifier, LicenseManager.defaultsSuiteName, "\(App.bundleIdentifier).usage"]
+        [App.bundleIdentifier]
     }
 
     /// Entry point, called early from `applicationDidFinishLaunching`. Probes off-main; the (rare) alert
@@ -92,13 +91,4 @@ enum PreferencesPersistenceCheck {
         let home = NSHomeDirectory()
         return path.hasPrefix(home) ? "~" + String(path.dropFirst(home.count)) : path
     }
-
-    #if DEBUG
-    /// QA hook (wired into `QAMenu`): show either dialog variant on demand, using the real
-    /// preferences-plist path, without having to actually symlink or lock a file.
-    static func debugShowDialog(symlinked: Bool) {
-        let path = "\(preferencesDirectory())/\(App.bundleIdentifier).plist"
-        showDialog(symlinkedPaths: symlinked ? [path] : [], unwritablePaths: symlinked ? [] : [path])
-    }
-    #endif
 }
