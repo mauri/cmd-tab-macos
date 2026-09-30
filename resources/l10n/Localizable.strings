@@ -1,4 +1,4 @@
-/* Menubar option. %@ is AltTab */
+/* Menubar option. %@ is CmdTab */
 "About %@" = "About %@";
 
 /* No comment provided by engineer. */
@@ -32,15 +32,6 @@
 "Allowed" = "Allowed";
 
 /* No comment provided by engineer. */
-"AltTab needs some permissions" = "AltTab needs some permissions";
-
-/* No comment provided by engineer. */
-"AltTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:" = "AltTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:";
-
-/* No comment provided by engineer. */
-"AltTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:" = "AltTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:";
-
-/* No comment provided by engineer. */
 "Always" = "Always";
 
 /* No comment provided by engineer. */
@@ -66,6 +57,15 @@
 
 /* Menubar option */
 "Check permissions…" = "Check permissions…";
+
+/* No comment provided by engineer. */
+"CmdTab needs some permissions" = "CmdTab needs some permissions";
+
+/* No comment provided by engineer. */
+"CmdTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:" = "CmdTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:";
+
+/* No comment provided by engineer. */
+"CmdTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:" = "CmdTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:";
 
 /* No comment provided by engineer. */
 "Conflicting shortcut" = "Conflicting shortcut";
@@ -119,7 +119,7 @@
 "Light" = "Light";
 
 /* No comment provided by engineer. */
-"macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. AltTab cannot use them.\n\nYour change would assign one of these to: %@." = "macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. AltTab cannot use them.\n\nYour change would assign one of these to: %@.";
+"macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. CmdTab cannot use them.\n\nYour change would assign one of these to: %@." = "macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. CmdTab cannot use them.\n\nYour change would assign one of these to: %@.";
 
 /* No comment provided by engineer. */
 "Medium" = "Medium";
@@ -154,7 +154,7 @@
 /* No comment provided by engineer. */
 "Open Accessibility Settings…" = "Open Accessibility Settings…";
 
-/* %@ is AltTab */
+/* %@ is CmdTab */
 "Quit %@" = "Quit %@";
 
 /* No comment provided by engineer. */
@@ -164,7 +164,7 @@
 "Screen including mouse" = "Screen including mouse";
 
 /* No comment provided by engineer. */
-"Screen showing AltTab" = "Screen showing AltTab";
+"Screen showing CmdTab" = "Screen showing CmdTab";
 
 /* No comment provided by engineer. */
 "Select next window" = "Select next window";
@@ -242,4 +242,4 @@
 "Window title contains" = "Window title contains";
 
 /* No comment provided by engineer. */
-"Your settings reset every time AltTab restarts." = "Your settings reset every time AltTab restarts.";
+"Your settings reset every time CmdTab restarts." = "Your settings reset every time CmdTab restarts.";

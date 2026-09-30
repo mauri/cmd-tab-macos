@@ -9,9 +9,9 @@
 "All screens" = "All screens";
 "All Spaces" = "All Spaces";
 "Allowed" = "Allowed";
-"AltTab needs some permissions" = "AltTab needs some permissions";
-"AltTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:" = "AltTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:";
-"AltTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:" = "AltTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:";
+"CmdTab needs some permissions" = "CmdTab needs some permissions";
+"CmdTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:" = "CmdTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:";
+"CmdTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:" = "CmdTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:";
 "Always" = "Always";
 "Settings" = "Settings";
 "and press" = "and press";
@@ -39,7 +39,7 @@
 "Ignore shortcuts" = "Ignore shortcuts";
 "Large" = "Large";
 "Light" = "Light";
-"macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. AltTab cannot use them.\n\nYour change would assign one of these to: %@." = "macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. AltTab cannot use them.\n\nYour change would assign one of these to: %@.";
+"macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. CmdTab cannot use them.\n\nYour change would assign one of these to: %@." = "macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. CmdTab cannot use them.\n\nYour change would assign one of these to: %@.";
 "Medium" = "Medium";
 "Menubar icon" = "Menubar icon";
 "Middle" = "Middle";
@@ -54,7 +54,7 @@
 "Quit %@" = "Quit %@";
 "Screen including menu bar" = "Screen including menu bar";
 "Screen including mouse" = "Screen including mouse";
-"Screen showing AltTab" = "Screen showing AltTab";
+"Screen showing CmdTab" = "Screen showing CmdTab";
 "Select next window" = "Select next window";
 "Select previous window" = "Select previous window";
 "Select windows on mouse hover" = "Select windows on mouse hover";
@@ -79,4 +79,4 @@
 "When no open window" = "When no open window";
 "Window Title" = "Window Title";
 "Window title contains" = "Window title contains";
-"Your settings reset every time AltTab restarts." = "Your settings reset every time AltTab restarts.";
+"Your settings reset every time CmdTab restarts." = "Your settings reset every time CmdTab restarts.";

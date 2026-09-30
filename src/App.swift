@@ -406,7 +406,7 @@ class App: NSApplication {
             pendingShowSettingsWindow = false
             showSettingsWindow()
         }
-        Logger.info { "Finished launching AltTab" }
+        Logger.info { "Finished launching CmdTab" }
     }
 }
 
@@ -415,7 +415,7 @@ extension App: NSApplicationDelegate {
         App.shared.disableRelaunchOnLogin()
         Logger.initialize()
         MainThreadStall.observe()
-        Logger.info { "Launching AltTab \(App.version)" }
+        Logger.info { "Launching CmdTab \(App.version)" }
         // Create the background queues first, before anything that can pump the main run loop re-entrantly
         // (the WindowServer tap's discovery). Window.init reads
         // BackgroundWork.appIconsQueue (an implicitly-unwrapped optional) via Application.fetchAppIcon, so
