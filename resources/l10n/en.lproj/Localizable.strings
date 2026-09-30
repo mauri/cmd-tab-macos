@@ -1,3 +1,4 @@
+"%d pt" = "%d pt";
 "About %@" = "About %@";
 "Accessibility" = "Accessibility";
 "Active app" = "Active app";
@@ -13,12 +14,13 @@
 "CmdTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:" = "CmdTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:";
 "CmdTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:" = "CmdTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:";
 "Always" = "Always";
+"Font size" = "Font size";
+"Icon size" = "Icon size";
 "Settings" = "Settings";
 "and press" = "and press";
 "Application Name" = "Application Name";
 "Application Name - Window Title" = "Application Name - Window Title";
 "Arrow keys" = "Arrow keys";
-"Auto" = "Auto";
 "Bundle ID" = "Bundle ID";
 "Cancel" = "Cancel";
 "Check permissions…" = "Check permissions…";
@@ -37,10 +39,8 @@
 "Hide windows" = "Hide windows";
 "Hold" = "Hold";
 "Ignore shortcuts" = "Ignore shortcuts";
-"Large" = "Large";
 "Light" = "Light";
 "macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. CmdTab cannot use them.\n\nYour change would assign one of these to: %@." = "macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. CmdTab cannot use them.\n\nYour change would assign one of these to: %@.";
-"Medium" = "Medium";
 "Menubar icon" = "Menubar icon";
 "Middle" = "Middle";
 "Never" = "Never";
@@ -64,7 +64,6 @@
 "Show at the end" = "Show at the end";
 "Show separate window for each tab" = "Show separate window for each tab";
 "Show single window for all tabs" = "Show single window for all tabs";
-"Small" = "Small";
 "Source code" = "Source code";
 "Start" = "Start";
 "Start at login" = "Start at login";

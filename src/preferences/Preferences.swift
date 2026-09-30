@@ -15,7 +15,8 @@ class Preferences {
         "cursorFollowFocus": CursorFollowFocus.never.indexAsString,
         "windowDisplayDelay": "100",
         "shortcutStyle": ShortcutStylePreference.focusOnRelease.indexAsString,
-        "appearanceSize": AppearanceSizePreference.auto.indexAsString,
+        "fontSize": FontSizePreference.pt16.indexAsString,
+        "iconSize": IconSizePreference.pt30.indexAsString,
         "appearanceTheme": AppearanceThemePreference.system.indexAsString,
         "showOnScreen": ShowOnScreenPreference.active.indexAsString,
         "titleTruncation": TitleTruncationPreference.end.indexAsString,
@@ -47,7 +48,8 @@ class Preferences {
     static var settingsWindowShownOnFirstLaunch: Bool { CachedUserDefaults.bool("settingsWindowShownOnFirstLaunch") }
 
     // macro values
-    static var appearanceSize: AppearanceSizePreference { CachedUserDefaults.macroPref("appearanceSize", AppearanceSizePreference.allCases) }
+    static var fontSize: FontSizePreference { CachedUserDefaults.macroPref("fontSize", FontSizePreference.allCases) }
+    static var iconSize: IconSizePreference { CachedUserDefaults.macroPref("iconSize", IconSizePreference.allCases) }
     static var appearanceTheme: AppearanceThemePreference { CachedUserDefaults.macroPref("appearanceTheme", AppearanceThemePreference.allCases) }
     static var showOnScreen: ShowOnScreenPreference { CachedUserDefaults.macroPref("showOnScreen", ShowOnScreenPreference.allCases) }
     static var titleTruncation: TitleTruncationPreference { CachedUserDefaults.macroPref("titleTruncation", TitleTruncationPreference.allCases) }

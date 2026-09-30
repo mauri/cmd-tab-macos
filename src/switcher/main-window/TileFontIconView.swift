@@ -4,48 +4,14 @@ import Cocoa
 // its character, paste the rawValue below, then add the same character to the --text=
 // argument of scripts/assets/subset_font.sh so it ships in the bundled font subset.
 enum Symbols: String {
-    // Switcher status icons
-    case circledPlusSign = "􀁌"       // plus.circle
-    case circledMinusSign = "􀁎"      // minus.circle
-    case circledSlashSign = "􀕧"      // circle.slash
-    case circledNumber0 = "􀀸"        // 0.circle
-    case circledNumber10 = "􀓵"       // 10.circle
-    case circledStar = "􀕬"           // star.circle
+    // Drawn by `TileFontIconView.setFilledStar`
     case filledCircledStar = "􀕭"     // star.circle.fill
-    case circledInfo = "􀅴"           // info.circle
-    // Preferences sidebar tab icons
-    case paintpalette = "􀝥"          // paintpalette
-    case command = "􀆔"               // command
-    case gearshape = "􀣋"             // gearshape
-    case handRaised = "􀉻"            // hand.raised
-    // Inline button icons
-    case link = "􀉣"                  // link
-    case arrowTriangleBranch = "􀙠"  // arrow.triangle.branch
-    // Permission window icons
+    // Permission window icon
     case accessibility = "􀕾"         // accessibility
-    case display = "􀢹"               // display
-    // Feedback window icons
-    case ladybug = "􀯔"               // ladybug
-    case lightbulb = "􀛭"             // lightbulb
-    // Segmented-control / button icons
+    // Exceptions list buttons
     case plus = "􀅼"                  // plus
     case minus = "􀅽"                 // minus
     case minusCircleFill = "􀁏"       // minus.circle.fill
-    // ShortcutStylePreference
-    case cursorarrowRays = "􀇰"       // cursorarrow.rays
-    case pauseRectangle = "􀊛"        // pause.rectangle
-    case magnifyingglass = "􀊫"       // magnifyingglass
-    // AppearanceSizePreference
-    case moonphaseWaningGibbousInverse = "􁐎"   // moonphase.waning.gibbous.inverse
-    case moonphaseLastQuarterInverse = "􁐏"     // moonphase.last.quarter.inverse
-    case moonphaseWaningCrescentInverse = "􁐐"  // moonphase.waning.crescent.inverse
-    case sparkles = "􀆿"              // sparkles
-    // AppearanceThemePreference
-    case sunMax = "􀆭"                // sun.max
-    case moonFill = "􀆺"              // moon.fill
-    case laptopcomputer = "􀟛"        // laptopcomputer
-    // Pro badge dot on the menubar status icon
-    case starFill = "􀋃"              // star.fill
 }
 
 class TileFontIconView: NSView {

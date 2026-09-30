@@ -155,6 +155,8 @@ To open the settings, click the CmdTab icon in the menu bar, then click "Setting
 - Mouse hover selection
 - Start at login
 - The menu bar icon
+- The font size of the window titles, from 11 to 24 points
+- The size of the app icons, from 16 to 48 points
 - The exceptions list, to hide an app from the switcher or to turn off the shortcut in an app
 
 ## Licence

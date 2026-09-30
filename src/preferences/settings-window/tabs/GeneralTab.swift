@@ -24,9 +24,16 @@ class GeneralTab {
         cell.bezelStyle = .regularSquare
         cell.arrowPosition = .arrowAtBottom
         cell.imagePosition = .imageOverlaps
+        let fontSize = TableGroupView.Row(leftTitle: NSLocalizedString("Font size", comment: ""),
+            rightViews: [LabelAndControl.makeDropdown("fontSize", FontSizePreference.allCases)])
+        let iconSize = TableGroupView.Row(leftTitle: NSLocalizedString("Icon size", comment: ""),
+            rightViews: [LabelAndControl.makeDropdown("iconSize", IconSizePreference.allCases)])
         let table = TableGroupView(width: SettingsWindow.contentWidth)
         table.addRow(startAtLogin)
         table.addRow(menubarIcon)
+        table.addNewTable()
+        table.addRow(fontSize)
+        table.addRow(iconSize)
         return TableGroupSetView(originalViews: [table], padding: 0, bottomPadding: 0)
     }
 

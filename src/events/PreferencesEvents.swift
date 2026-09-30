@@ -7,7 +7,8 @@ import Cocoa
 class PreferencesEvents {
     private static var initialized = false
     private static let preferencesRequiringUiReset = [
-        "appearanceSize",
+        "fontSize",
+        "iconSize",
         "appearanceTheme",
         "showOnScreen",
     ]

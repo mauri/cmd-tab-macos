@@ -1,3 +1,6 @@
+/* A size in points */
+"%d pt" = "%d pt";
+
 /* Menubar option. %@ is CmdTab */
 "About %@" = "About %@";
 
@@ -45,9 +48,6 @@
 
 /* No comment provided by engineer. */
 "Arrow keys" = "Arrow keys";
-
-/* No comment provided by engineer. */
-"Auto" = "Auto";
 
 /* No comment provided by engineer. */
 "Bundle ID" = "Bundle ID";
@@ -98,6 +98,9 @@
 "Focus selected window" = "Focus selected window";
 
 /* No comment provided by engineer. */
+"Font size" = "Font size";
+
+/* No comment provided by engineer. */
 "General" = "General";
 
 /* No comment provided by engineer. */
@@ -110,19 +113,16 @@
 "Hold" = "Hold";
 
 /* No comment provided by engineer. */
-"Ignore shortcuts" = "Ignore shortcuts";
+"Icon size" = "Icon size";
 
 /* No comment provided by engineer. */
-"Large" = "Large";
+"Ignore shortcuts" = "Ignore shortcuts";
 
 /* No comment provided by engineer. */
 "Light" = "Light";
 
 /* No comment provided by engineer. */
 "macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. CmdTab cannot use them.\n\nYour change would assign one of these to: %@." = "macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. CmdTab cannot use them.\n\nYour change would assign one of these to: %@.";
-
-/* No comment provided by engineer. */
-"Medium" = "Medium";
 
 /* No comment provided by engineer. */
 "Menubar icon" = "Menubar icon";
@@ -195,9 +195,6 @@
 
 /* No comment provided by engineer. */
 "Show single window for all tabs" = "Show single window for all tabs";
-
-/* No comment provided by engineer. */
-"Small" = "Small";
 
 /* No comment provided by engineer. */
 "Source code" = "Source code";

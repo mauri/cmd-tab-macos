@@ -126,41 +126,4 @@ final class TileGridLayoutTests: XCTestCase {
         let offsets = TileGridLayout.centeringOffsets(rowWidths: [[400]], padding: padding, within: 95)
         XCTAssertEqual(offsets, [0])
     }
-
-    // MARK: - F. The auto size
-
-    func testAutoTakesTheFirstSizeThatFits() {
-        let heights: [String: CGFloat] = ["large": 200, "medium": 100, "small": 50]
-        let picked = TileGridLayout.firstSizeThatFits(["large", "medium", "small"], heightMax: 300) { heights[$0]! }
-        XCTAssertEqual(picked, "large")
-    }
-
-    func testAutoFallsThroughToTheNextSize() {
-        let heights: [String: CGFloat] = ["large": 200, "medium": 100, "small": 50]
-        var measured = [String]()
-        let picked = TileGridLayout.firstSizeThatFits(["large", "medium", "small"], heightMax: 150) {
-            measured.append($0)
-            return heights[$0]!
-        }
-        XCTAssertEqual(picked, "medium")
-        XCTAssertEqual(measured, ["large", "medium"])
-    }
-
-    func testAutoKeepsTheSmallestWhenNothingFits() {
-        let heights: [String: CGFloat] = ["large": 200, "medium": 100, "small": 50]
-        let picked = TileGridLayout.firstSizeThatFits(["large", "medium", "small"], heightMax: 10) { heights[$0]! }
-        XCTAssertEqual(picked, "small")
-    }
-
-    /// In production the measurement applies the size to `Appearance` before laying the grid out, so the
-    /// appearance is left on whatever was measured last. It must be the size that is returned.
-    func testAutoMeasuresEachCandidateExactlyOnce() {
-        var measured = [String]()
-        let picked = TileGridLayout.firstSizeThatFits(["large", "medium", "small"], heightMax: 10) {
-            measured.append($0)
-            return 999
-        }
-        XCTAssertEqual(measured, ["large", "medium", "small"])
-        XCTAssertEqual(picked, measured.last)
-    }
 }

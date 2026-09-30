@@ -151,20 +151,21 @@ enum ShowTitlesPreference: CaseIterable, MacroPreference {
     }
 }
 
-enum AppearanceSizePreference: CaseIterable, MacroPreference {
-    case small
-    case medium
-    case large
-    case auto
+/// Point size of the window titles in the switcher. Stored by case index, so append new sizes rather than
+/// inserting them, or a stored index would name a different size.
+enum FontSizePreference: Int, CaseIterable, MacroPreference {
+    case pt11 = 11, pt12 = 12, pt13 = 13, pt14 = 14, pt15 = 15, pt16 = 16, pt18 = 18, pt20 = 20, pt22 = 22, pt24 = 24
 
-    var localizedString: LocalizedString {
-        switch self {
-            case .small: return NSLocalizedString("Small", comment: "")
-            case .medium: return NSLocalizedString("Medium", comment: "")
-            case .large: return NSLocalizedString("Large", comment: "")
-            case .auto: return NSLocalizedString("Auto", comment: "")
-        }
-    }
+    var points: CGFloat { CGFloat(rawValue) }
+    var localizedString: LocalizedString { String(format: NSLocalizedString("%d pt", comment: "A size in points"), rawValue) }
+}
+
+/// Point size of the app icons in the switcher. Stored by case index, like `FontSizePreference`.
+enum IconSizePreference: Int, CaseIterable, MacroPreference {
+    case pt16 = 16, pt18 = 18, pt20 = 20, pt24 = 24, pt28 = 28, pt30 = 30, pt32 = 32, pt36 = 36, pt40 = 40, pt48 = 48
+
+    var points: CGFloat { CGFloat(rawValue) }
+    var localizedString: LocalizedString { String(format: NSLocalizedString("%d pt", comment: "A size in points"), rawValue) }
 }
 
 enum AppearanceThemePreference: CaseIterable, MacroPreference {

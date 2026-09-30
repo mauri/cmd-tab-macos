@@ -181,12 +181,7 @@ class TilesView {
     }
 
     static func updateItemsAndLayout(_ preservedScrollOrigin: CGPoint?) {
-        var widthMax = TilesPanel.maxTilesWidth().rounded()
-        if Preferences.appearanceSize == .auto {
-            resolveAutoSize(widthMax)
-            Self.updateCachedSizes()
-            widthMax = TilesPanel.maxTilesWidth().rounded()
-        }
+        let widthMax = TilesPanel.maxTilesWidth().rounded()
         if let (maxX, maxY) = layoutTileViews(widthMax) {
             layoutParentViews(maxX, widthMax, maxY)
             centerRows(TilesView.tilesWidth)
@@ -210,21 +205,6 @@ class TilesView {
         let clampedOrigin = CGPoint(x: min(max(0, scrollOrigin.x), maxX), y: min(max(0, scrollOrigin.y), maxY))
         scrollView.contentView.scroll(to: clampedOrigin)
         scrollView.reflectScrolledClipView(scrollView.contentView)
-    }
-
-    private static func resolveAutoSize(_ widthMax: CGFloat) {
-        let heightMax = TilesPanel.maxTilesHeight()
-        _ = TileGridLayout.firstSizeThatFits([AppearanceSizePreference.large, .medium, .small], heightMax: heightMax) { size in
-            Appearance.applySize(size)
-            Self.updateCachedSizes()
-            return dryRunLayoutTileViews(widthMax)
-        }
-    }
-
-    private static func dryRunLayoutTileViews(_ widthMax: CGFloat) -> CGFloat {
-        let height = TileView.height(Self.layoutCache.labelHeight)
-        let tiles = fillTiles(height).tiles
-        return TileGridLayout.compute(gridInput(tiles, height, widthMax)).maxY
     }
 
     /// Puts this render's window on every recycled tile that has one, and releases the images the rest are

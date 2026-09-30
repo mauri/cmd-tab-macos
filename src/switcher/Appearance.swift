@@ -2,7 +2,6 @@ import Cocoa
 
 class Appearance {
     // size
-    static var resolvedSize = AppearanceSizePreference.medium
     static var maxWidthOnScreen = CGFloat(1000)
     static var iconSize = CGFloat(1000)
     static var fontHeight = CGFloat(3)
@@ -33,7 +32,6 @@ class Appearance {
     static var highlightFocusedBorderColor: NSColor { get { NSColor.systemAccentColor } }
     static var highlightHoveredBorderColor: NSColor { get { NSColor.systemAccentColor.withAlphaComponent(0.7) } }
 
-    private static var currentSize: AppearanceSizePreference { Preferences.appearanceSize }
     static var currentTheme: AppearanceThemePreference {
         let theme = Preferences.appearanceTheme
         return theme == .system ? NSAppearance.currentDrawing().getThemeName() : theme
@@ -46,22 +44,8 @@ class Appearance {
 
     private static func updateSize() {
         maxWidthOnScreen = AppearanceTestable.comfortableWidth(NSScreen.preferred.physicalSize().map { $0.width })
-        applySize(currentSize == .auto ? .large : currentSize)
-    }
-
-    static func applySize(_ size: AppearanceSizePreference) {
-        resolvedSize = size
-        switch size {
-            case .small:
-                iconSize = 18
-                fontHeight = 13
-            case .medium:
-                iconSize = 24
-                fontHeight = 14
-            case .large, .auto:
-                iconSize = 30
-                fontHeight = 16
-        }
+        iconSize = Preferences.iconSize.points
+        fontHeight = Preferences.fontSize.points
         updateFont()
     }
 

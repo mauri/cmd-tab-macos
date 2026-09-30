@@ -9,8 +9,8 @@ cross the panel's maximum width, at which point a new row starts.
 
 `TileGridLayout` is that placement as arithmetic, extracted from `TilesView`. `TilesView` keeps the AppKit
 half — measuring a tile by filling it, assigning frames, sizing the panel and the document view — and this
-owns the decisions: where each tile goes, which row it lands on, the two totals the panel is sized from, how
-much each row moves to be centered, and which appearance size the **auto** setting settles on.
+owns the decisions: where each tile goes, which row it lands on, the two totals the panel is sized from, and how
+much each row moves to be centered.
 
 The point of the split is that the grid can now be pinned at any width, any tile size, either writing
 direction and any number of tiles, without a screen. Before it, every layout question had to be answered by
@@ -41,13 +41,8 @@ frame's origin is one tile width before it.
   never negative, so no row is ever pulled backwards off the edge. Half-pixels round away from zero
   (`(22.5).rounded() == 23`), the same as the shipped code.
 - **Centering is measured against a width the caller chooses** (`TilesView` passes the panel's final
-  `thumbnailsWidth`, not the grid's `maxX`), so the last row of a short list sits under the middle of the
+  `tilesWidth`, not the grid's `maxX`), so the last row of a short list sits under the middle of the
   panel rather than under the middle of the tiles.
-- **The auto size takes the first that fits, and the last one regardless.** `firstSizeThatFits` walks
-  large → medium → small and stops at the first whose grid is no taller than the space available; if none
-  fit, the smallest is used anyway. The measurement is a closure because the production caller has to apply
-  the size to `Appearance` before it can measure it — which means the appearance is left on the size that is
-  returned, and the closure is called once per candidate up to and including that one.
 
 ---
 
@@ -85,10 +80,3 @@ Mirrors `TileGridLayoutTests.swift` 1:1.
 - **testAShortRowIsCentered** — a half-empty last row is offset by half the slack, rounded away from zero.
 - **testAnEmptyRowGetsNoOffset** — the empty row 0 left by an oversized first tile.
 - **testARowWiderThanTheSpaceIsNotPulledBack** — the offset is clamped at zero, never negative.
-
-### F. The auto size
-- **testAutoTakesTheFirstSizeThatFits** — large is measured first and kept when its grid fits.
-- **testAutoFallsThroughToTheNextSize** — large does not fit, medium does; both are measured, small is not.
-- **testAutoKeepsTheSmallestWhenNothingFits** — every candidate is measured and the last one is returned.
-- **testAutoMeasuresEachCandidateExactlyOnce** — the measurement has side effects in production
-  (`Appearance.applySize`), so the call order and count are part of the contract.

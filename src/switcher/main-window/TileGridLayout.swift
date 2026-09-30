@@ -79,17 +79,6 @@ enum TileGridLayout {
         }
     }
 
-    /// The auto size: the first candidate whose grid fits in `heightMax`, and the last candidate when none
-    /// do. `measure` is called once for every candidate up to and including the chosen one, in order — the
-    /// production caller applies the size to `Appearance` inside it before laying the grid out, so the
-    /// appearance is left on the size this returns.
-    static func firstSizeThatFits<Size>(_ candidates: [Size], heightMax: CGFloat, measure: (Size) -> CGFloat) -> Size? {
-        for (position, candidate) in candidates.enumerated() {
-            if measure(candidate) <= heightMax || position == candidates.count - 1 { return candidate }
-        }
-        return nil
-    }
-
     private static func needsNewRow(_ projectedX: CGFloat, _ input: Input) -> Bool {
         input.isLeftToRight ? projectedX > input.widthMax : projectedX < 0
     }
