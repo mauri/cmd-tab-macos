@@ -117,10 +117,12 @@
 		5FBB24E12F389A0400BF7E14 /* MainThreadStall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FBB24E02F389A0400BF7E14 /* MainThreadStall.swift */; };
 		5FDF9EA92FB3577600703843 /* ShortcutRecorder in Frameworks */ = {isa = PBXBuildFile; productRef = 5FDF9EA82FB3577600703843 /* ShortcutRecorder */; };
 		5FDF9EAB2FB357F600703843 /* ShortcutRecorder in Frameworks */ = {isa = PBXBuildFile; productRef = 5FDF9EAA2FB357F600703843 /* ShortcutRecorder */; };
-		64C6A0192E08311D01D96E4E /* menubar-1.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 126D5AA615CEE89F73C22DA7 /* menubar-1.pdf */; };
+		64C6A0192E08311D01D96E4E /* menubar-1@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 126D5AA615CEE89F73C22DA7 /* menubar-1@2x.png */; };
+		6B7F8E977DEA6FA1F33735A0 /* menubar-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 05380541939C7636DDEBB618 /* menubar-1.png */; };
 		6D42BE46F595D567EDBF559A /* DynamicColorTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = D04BA0000000000000DCFFF1 /* DynamicColorTextField.swift */; };
 		D04BAE2100000000ED003001 /* LightLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D04BAE2100000000ED003002 /* LightLabel.swift */; };
-		7D589F3A0C8DF93BA9E094C5 /* menubar-2.pdf in Resources */ = {isa = PBXBuildFile; fileRef = BC07818D6FCBEFC756C64296 /* menubar-2.pdf */; };
+		7D589F3A0C8DF93BA9E094C5 /* menubar-2@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = BC07818D6FCBEFC756C64296 /* menubar-2@2x.png */; };
+		CD1816A8E1E1D59F052BCC1D /* menubar-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 29314CA7931C9424D2672CC2 /* menubar-2.png */; };
 		AA0C8A100000000000000001 /* AXCallScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0C8A000000000000000001 /* AXCallScheduler.swift */; };
 		AA0C8A1000000000000000B1 /* CGSCallScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0C8A0000000000000000B1 /* CGSCallScheduler.swift */; };
 		AA0C8A1000000000000000B2 /* ProcessCallScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0C8A0000000000000000B2 /* ProcessCallScheduler.swift */; };
@@ -170,7 +172,8 @@
 		BF0CAC000000000000001001 /* MissionControlOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF0CAC000000000000000001 /* MissionControlOverlay.swift */; };
 		BF0CAC000000000000001002 /* MissionControlOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF0CAC000000000000000001 /* MissionControlOverlay.swift */; };
 		BF0CAC000000000000001003 /* MissionControlOverlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF0CAC000000000000000002 /* MissionControlOverlayTests.swift */; };
-		C79742CA78D3CC74B6920437 /* menubar-0.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 02540420CE27E6C973652426 /* menubar-0.pdf */; };
+		C79742CA78D3CC74B6920437 /* menubar-0@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 02540420CE27E6C973652426 /* menubar-0@2x.png */; };
+		61E336F796F85D8AAAF94B25 /* menubar-0.png in Resources */ = {isa = PBXBuildFile; fileRef = 302CAB4D8F044CDD42D11648 /* menubar-0.png */; };
 		D04BA0000000000000DCFFF2 /* DynamicColorTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = D04BA0000000000000DCFFF1 /* DynamicColorTextField.swift */; };
 		D04BAE2100000000ED003003 /* LightLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D04BAE2100000000ED003002 /* LightLabel.swift */; };
 		D04BA00000000000C0DE0012 /* ShortcutAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = D04BA00000000000C0DE0010 /* ShortcutAction.swift */; };
@@ -270,8 +273,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		02540420CE27E6C973652426 /* menubar-0.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "menubar-0.pdf"; sourceTree = "<group>"; };
-		126D5AA615CEE89F73C22DA7 /* menubar-1.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "menubar-1.pdf"; sourceTree = "<group>"; };
+		02540420CE27E6C973652426 /* menubar-0@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "menubar-0@2x.png"; sourceTree = "<group>"; };
+		302CAB4D8F044CDD42D11648 /* menubar-0.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "menubar-0.png"; sourceTree = "<group>"; };
+		126D5AA615CEE89F73C22DA7 /* menubar-1@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "menubar-1@2x.png"; sourceTree = "<group>"; };
+		05380541939C7636DDEBB618 /* menubar-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "menubar-1.png"; sourceTree = "<group>"; };
 		1C9616522F4E58860385E090 /* .swiftformat */ = {isa = PBXFileReference; lastKnownFileType = file.swiftformat; path = .swiftformat; sourceTree = "<group>"; };
 		1C9618573E422118423CEC48 /* .swiftformatignore */ = {isa = PBXFileReference; lastKnownFileType = file.swiftformatignore; path = .swiftformatignore; sourceTree = "<group>"; };
 		1C96189273B7482124C36F4C /* Switch.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Switch.swift; sourceTree = "<group>"; };
@@ -371,7 +376,8 @@
 		AA0C8A0000000000000000B1 /* CGSCallScheduler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CGSCallScheduler.swift; sourceTree = "<group>"; };
 		AA0C8A0000000000000000B2 /* ProcessCallScheduler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProcessCallScheduler.swift; sourceTree = "<group>"; };
 		BB0000000000000000000001 /* TabGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabGroup.swift; sourceTree = "<group>"; };
-		BC07818D6FCBEFC756C64296 /* menubar-2.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "menubar-2.pdf"; sourceTree = "<group>"; };
+		BC07818D6FCBEFC756C64296 /* menubar-2@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "menubar-2@2x.png"; sourceTree = "<group>"; };
+		29314CA7931C9424D2672CC2 /* menubar-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "menubar-2.png"; sourceTree = "<group>"; };
 		BF0C80CD087C6384E0340F4E /* convert_font_to_png.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = convert_font_to_png.sh; sourceTree = "<group>"; };
 		BF0C810FA0F6BC70E5886E11 /* HelperExtensionsTestable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HelperExtensionsTestable.swift; sourceTree = "<group>"; };
 		BF0C813DE8B55A735B1720B5 /* subset_font.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = subset_font.sh; sourceTree = "<group>"; };
@@ -770,9 +776,12 @@
 		BF0C80536B40523C5DB23BE2 /* menubar */ = {
 			isa = PBXGroup;
 			children = (
-				02540420CE27E6C973652426 /* menubar-0.pdf */,
-				126D5AA615CEE89F73C22DA7 /* menubar-1.pdf */,
-				BC07818D6FCBEFC756C64296 /* menubar-2.pdf */,
+				302CAB4D8F044CDD42D11648 /* menubar-0.png */,
+				02540420CE27E6C973652426 /* menubar-0@2x.png */,
+				05380541939C7636DDEBB618 /* menubar-1.png */,
+				126D5AA615CEE89F73C22DA7 /* menubar-1@2x.png */,
+				29314CA7931C9424D2672CC2 /* menubar-2.png */,
+				BC07818D6FCBEFC756C64296 /* menubar-2@2x.png */,
 			);
 			path = menubar;
 			sourceTree = "<group>";
@@ -1283,9 +1292,12 @@
 				D04BA9D63A88AF2C20A1E656 /* SF-Pro-Text-Regular.otf in Resources */,
 				D04BA530F00E5989D66C6A1F /* contributors.md in Resources */,
 				BF0C852D28E458CDD6FA3E44 /* app.icns in Resources */,
-				C79742CA78D3CC74B6920437 /* menubar-0.pdf in Resources */,
-				64C6A0192E08311D01D96E4E /* menubar-1.pdf in Resources */,
-				7D589F3A0C8DF93BA9E094C5 /* menubar-2.pdf in Resources */,
+				61E336F796F85D8AAAF94B25 /* menubar-0.png in Resources */,
+				C79742CA78D3CC74B6920437 /* menubar-0@2x.png in Resources */,
+				6B7F8E977DEA6FA1F33735A0 /* menubar-1.png in Resources */,
+				64C6A0192E08311D01D96E4E /* menubar-1@2x.png in Resources */,
+				CD1816A8E1E1D59F052BCC1D /* menubar-2.png in Resources */,
+				7D589F3A0C8DF93BA9E094C5 /* menubar-2@2x.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
