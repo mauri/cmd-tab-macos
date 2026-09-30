@@ -3,4 +3,4 @@
 set -ex
 
 set -o pipefail && xcodebuild -project CmdTab.xcodeproj -scheme Release -derivedDataPath DerivedData | scripts/xcbeautify
-file "$BUILD_DIR/$XCODE_BUILD_PATH/$APP_NAME.app/Contents/MacOS/$APP_NAME"
+file DerivedData/Build/Products/Release/CmdTab.app/Contents/MacOS/CmdTab

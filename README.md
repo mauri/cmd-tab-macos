@@ -69,6 +69,28 @@ DerivedData/Build/Products/Debug/CmdTab.app
 
 If the build fails with "No certificate matching 'Local Self-Signed' found", do the certificate setup again.
 
+## Build a release
+
+From the repository root, run:
+
+```sh
+scripts/build_app.sh
+```
+
+The script builds the Release configuration: optimized, for Apple silicon and Intel, and signed with "Local Self-Signed". The app is written to:
+
+```
+DerivedData/Build/Products/Release/CmdTab.app
+```
+
+To make a zip file that you can share, run:
+
+```sh
+ditto -c -k --keepParent DerivedData/Build/Products/Release/CmdTab.app CmdTab.zip
+```
+
+The app is not notarized, because notarization needs an Apple Developer ID. On another Mac, Gatekeeper blocks the first launch. To open it, right-click the app and click Open, or allow it in System Settings > Privacy & Security.
+
 ## Run the tests
 
 ```sh
