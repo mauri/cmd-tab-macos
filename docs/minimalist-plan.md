@@ -14,7 +14,7 @@ The source tree has 295 Swift files and about 45,000 lines. The Xcode project ha
 
 Each phase ends with a build that compiles and tests that pass. Do these steps at the end of each phase:
 
-1. Remove each deleted file from `alt-tab-macos.xcodeproj/project.pbxproj`. A file can be in the app target, the `unit-tests` target, or both.
+1. Remove each deleted file from `CmdTab.xcodeproj/project.pbxproj`. A file can be in the app target, the `unit-tests` target, or both.
 2. Delete the matching triad files. For each deleted `Foo.swift`, also delete `FooSpecs.md` and `FooTests.swift` if they exist.
 3. Build with the command in `ai/build.sh`.
 4. Run the tests with `ai/test.sh`.

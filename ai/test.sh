@@ -5,7 +5,7 @@
 # the test target: measured 34s vs 1.3s here, to buy 1.7s less runtime (8.8s vs 10.8s). Debug also
 # runs the `#if DEBUG` tests that Release drops.
 xcodebuild test \
-  -project alt-tab-macos.xcodeproj \
+  -project CmdTab.xcodeproj \
   -scheme Test \
   -configuration Debug \
   -derivedDataPath DerivedData

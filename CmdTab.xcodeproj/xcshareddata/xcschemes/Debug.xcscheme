@@ -16,8 +16,8 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "D04BA5E73DAF232ADE11C97A"
                BuildableName = "AltTab.app"
-               BlueprintName = "alt-tab-macos"
-               ReferencedContainer = "container:alt-tab-macos.xcodeproj">
+               BlueprintName = "CmdTab"
+               ReferencedContainer = "container:CmdTab.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -35,7 +35,7 @@
                BlueprintIdentifier = "BF0C873EC188A7EBBCF4310D"
                BuildableName = "unit-tests.xctest"
                BlueprintName = "unit-tests"
-               ReferencedContainer = "container:alt-tab-macos.xcodeproj">
+               ReferencedContainer = "container:CmdTab.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -57,8 +57,8 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D04BA5E73DAF232ADE11C97A"
             BuildableName = "AltTab.app"
-            BlueprintName = "alt-tab-macos"
-            ReferencedContainer = "container:alt-tab-macos.xcodeproj">
+            BlueprintName = "CmdTab"
+            ReferencedContainer = "container:CmdTab.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -84,8 +84,8 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D04BA5E73DAF232ADE11C97A"
             BuildableName = "AltTab.app"
-            BlueprintName = "alt-tab-macos"
-            ReferencedContainer = "container:alt-tab-macos.xcodeproj">
+            BlueprintName = "CmdTab"
+            ReferencedContainer = "container:CmdTab.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

@@ -1,9 +1,9 @@
 {
   "private": true,
-  "name": "alt-tab-macos",
+  "name": "cmdtab",
   "version": "1.0.0",
   "author": "",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",

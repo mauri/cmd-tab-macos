@@ -17,7 +17,7 @@
                BlueprintIdentifier = "BF0C873EC188A7EBBCF4310D"
                BuildableName = "unit-tests.xctest"
                BlueprintName = "unit-tests"
-               ReferencedContainer = "container:alt-tab-macos.xcodeproj">
+               ReferencedContainer = "container:CmdTab.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -43,7 +43,7 @@
                BlueprintIdentifier = "BF0C873EC188A7EBBCF4310D"
                BuildableName = "unit-tests.xctest"
                BlueprintName = "unit-tests"
-               ReferencedContainer = "container:alt-tab-macos.xcodeproj">
+               ReferencedContainer = "container:CmdTab.xcodeproj">
             </BuildableReference>
             <LocationScenarioReference
                identifier = "com.apple.dt.IDEFoundation.CurrentLocationScenarioIdentifier"

@@ -28,7 +28,7 @@ There is intentionally **nothing else**: no lcov, no HTML, no committed `.xcresu
    ```sh
    rm -rf /tmp/altcov.xcresult
    set -o pipefail && xcodebuild test \
-     -project alt-tab-macos.xcodeproj -scheme Test -configuration Debug \
+     -project CmdTab.xcodeproj -scheme Test -configuration Debug \
      -enableCodeCoverage YES -resultBundlePath /tmp/altcov.xcresult | scripts/xcbeautify
    ```
    Debug, like `ai/test.sh` — Release means wholemodule + -O, which both rebuilds the whole test

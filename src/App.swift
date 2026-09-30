@@ -41,9 +41,8 @@ class App: NSApplication {
     }
 
     /// we put application code here which should be executed on init() and Preferences change
-    /// The switcher UI only exists once permissions are granted. Activating a license through the
-    /// `alt-tab://activate` url launches the app and can land its callback before that, so we bail
-    /// instead of resetting a UI that isn't built yet (`TilesView.reset` traps on `TilesPanel.shared`).
+    /// The switcher UI only exists once permissions are granted, and a preference can change before that,
+    /// so we bail instead of resetting a UI that isn't built yet (`TilesView.reset` traps on `TilesPanel.shared`).
     static func resetPreferencesDependentComponents() {
         guard TilesPanel.shared != nil else { return }
         TilesView.reset()

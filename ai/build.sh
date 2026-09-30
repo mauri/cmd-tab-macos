@@ -1,7 +1,7 @@
 #!/bin/bash
 
 xcodebuild \
-  -project alt-tab-macos.xcodeproj \
+  -project CmdTab.xcodeproj \
   -scheme Debug \
   -configuration Debug \
   -derivedDataPath DerivedData
