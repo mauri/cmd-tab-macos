@@ -1,7 +1,142 @@
-<div align="center">
+# AltTab (minimal)
 
-<a href="https://alt-tab.app/"><img src="docs/readme/main.svg" alt="AltTab Pro — 7.4M downloads — 15K GitHub stars — Get AltTab"/></a>
+AltTab replaces the macOS app switcher with a window switcher. When you press Cmd+Tab, it shows a vertical list with one row for each open window. Each row shows the app icon and the window title.
 
-<a href="https://jb.gg/OpenSource"><img src="docs/readme/sponsor.svg" alt="Sponsored by JetBrains" width="900"/></a>
+This version is a reduced fork of [AltTab](https://github.com/lwouis/alt-tab-macos). It has no window screenshots, no search, no gestures, no licensing, and no automatic updates. It needs only the Accessibility permission.
 
-</div>
+## Requirements
+
+- macOS 12 or later
+- Xcode 16.2 or later, installed in `/Applications`
+- An administrator account, for the one-time setup
+
+## One-time setup
+
+### Select Xcode
+
+The build scripts use `xcodebuild`, which needs the full Xcode, not the Command Line Tools.
+
+1. Open Xcode once, and let it install its components.
+2. Select Xcode as the active developer directory:
+
+   ```sh
+   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+   ```
+
+3. Make sure that the change took effect:
+
+   ```sh
+   xcode-select -p
+   xcodebuild -version
+   ```
+
+The first command must print `/Applications/Xcode.app/Contents/Developer`.
+
+### Create the signing certificate
+
+Debug builds are signed with a self-signed certificate named "Local Self-Signed". macOS ties the Accessibility permission to this signature. A stable signature keeps the permission across rebuilds.
+
+1. From the repository root, run the setup script:
+
+   ```sh
+   scripts/codesign/setup_local.sh
+   ```
+
+2. When macOS asks for your password, enter it. The script adds the certificate to your login keychain and trusts it for code signing.
+3. Make sure that the certificate is valid:
+
+   ```sh
+   security find-identity -v -p codesigning
+   ```
+
+The output must list `"Local Self-Signed"`. The certificate is valid for 10 years.
+
+The script leaves the files `codesign.conf`, `codesign.crt`, `codesign.key`, and `codesign.p12` in the repository root. Git ignores them. You can delete them after the setup.
+
+## Build
+
+From the repository root, run:
+
+```sh
+ai/build.sh
+```
+
+The script builds the Debug configuration. The app is written to:
+
+```
+DerivedData/Build/Products/Debug/AltTab.app
+```
+
+If the build fails with "No certificate matching 'Local Self-Signed' found", do the certificate setup again.
+
+## Run the tests
+
+```sh
+ai/test.sh
+```
+
+The tests run without the app and without code signing.
+
+## Launch
+
+1. If another copy of AltTab is running, quit it. Both copies use the same shortcut and the same settings.
+2. Open the build:
+
+   ```sh
+   open DerivedData/Build/Products/Debug/AltTab.app
+   ```
+
+3. When the permissions window opens, click "Open Accessibility Settings".
+4. In System Settings, turn on the AltTab entry.
+
+After a few seconds, the permissions window closes and the AltTab icon shows in the menu bar.
+
+To see the log, start the binary from a terminal instead:
+
+```sh
+DerivedData/Build/Products/Debug/AltTab.app/Contents/MacOS/AltTab
+```
+
+To stop the app, press Ctrl+C in that terminal.
+
+### If the Accessibility permission does not take effect
+
+macOS shows one AltTab entry for all copies that use the bundle ID `com.lwouis.alt-tab-macos`. If another copy asked for the permission first, the entry belongs to that copy.
+
+1. Quit the build.
+2. Reset the permission for the bundle ID:
+
+   ```sh
+   tccutil reset Accessibility com.lwouis.alt-tab-macos
+   ```
+
+3. Open the build again, and turn on the new AltTab entry.
+
+The reset also removes the permission from other copies of AltTab.
+
+## Use
+
+| Action | Keys or mouse |
+| --- | --- |
+| Show the switcher and select the next window | Hold Cmd, then press Tab |
+| Select the previous window | Shift, while you hold Cmd |
+| Move the selection | Arrow keys |
+| Focus the selected window | Release Cmd, or press Return |
+| Close the switcher without a change | Esc |
+| Focus a window with the mouse | Click its row |
+
+The list shows the windows of all apps, on all Spaces and screens, in the order that you last used them. Minimized, hidden, and fullscreen windows are included. Apps without an open window are not shown.
+
+## Settings
+
+To open the settings, click the AltTab icon in the menu bar, then click "Settings…". The settings page has these controls:
+
+- The shortcut that shows the switcher
+- Mouse hover selection
+- Start at login
+- The menu bar icon
+- The exceptions list, to hide an app from the switcher or to turn off the shortcut in an app
+
+## Licence
+
+GPL-3.0. See [LICENCE.md](LICENCE.md). This fork is based on [AltTab](https://github.com/lwouis/alt-tab-macos) by Louis Pontoise and its contributors.
