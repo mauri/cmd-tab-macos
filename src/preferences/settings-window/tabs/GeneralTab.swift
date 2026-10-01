@@ -28,7 +28,7 @@ class GeneralTab {
             rightViews: [LabelAndControl.makeDropdown("fontSize", FontSizePreference.allCases)])
         let iconSize = TableGroupView.Row(leftTitle: NSLocalizedString("Icon size", comment: ""),
             rightViews: [LabelAndControl.makeDropdown("iconSize", IconSizePreference.allCases)])
-        let table = TableGroupView(width: SettingsWindow.contentWidth)
+        let table = TableGroupView(width: SettingsWindow.settingsColumnWidth)
         table.addRow(startAtLogin)
         table.addRow(menubarIcon)
         table.addNewTable()

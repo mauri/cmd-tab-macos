@@ -53,7 +53,7 @@ class ControlsTab {
         let binding = TriggerBinding()
         binding.bind(toShortcut: 0)
         trigger = binding
-        let table = TableGroupView(width: SettingsWindow.contentWidth)
+        let table = TableGroupView(width: SettingsWindow.settingsColumnWidth)
         table.addRow(TableGroupView.Row(leftTitle: TriggerBinding.triggerLabel, rightViews: [binding.view]))
         table.addRow(leftText: labelMouse, rightViews: [LabelAndControl.makeSwitch("mouseHoverEnabled")])
         initializeShortcutRecorderState(0)

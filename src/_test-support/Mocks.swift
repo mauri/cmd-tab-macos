@@ -4,7 +4,7 @@ import ShortcutRecorder
 // Minimal stub so `TableGroupView.swift` / `SidebarList.swift` compile in the test target without
 // dragging in the full `SettingsWindow`. Tests never instantiate it — they only need the symbol.
 enum SettingsWindow {
-    static let contentWidth = CGFloat(700)
+    static let exceptionsColumnWidth = CGFloat(640)
 }
 
 // `EventClosure` is declared in `LabelAndControl.swift` (app target only). `TableGroupView`

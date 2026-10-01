@@ -2,14 +2,14 @@ import Cocoa
 import UniformTypeIdentifiers
 
 class ExceptionsTab {
-    private static let sidebarWidth = CGFloat(280)
+    private static let sidebarWidth = CGFloat(240)
     private static let rowHeight = CGFloat(56)
     private static let iconSize = CGFloat(40)
     private static let minContainerHeight = CGFloat(470)
     private static let sidebarHorizontalPadding = TableGroupView.padding
     private static let editorTopBottomPadding = TableGroupView.padding
     private static let editorHorizontalPadding = TableGroupView.padding
-    private static var editorWidth: CGFloat { SettingsWindow.contentWidth - sidebarWidth - 1 }
+    private static var editorWidth: CGFloat { SettingsWindow.exceptionsColumnWidth - sidebarWidth - 1 }
 
     private static var items: [ExceptionEntry] = []
     private static var selectedIndex = -1

@@ -7,8 +7,8 @@ func sidebarSeparatorView() -> NSBox {
     return separator
 }
 
-/// Builds the [sidebar | 1px separator | editor] horizontal chassis shared by ExceptionsTab and
-/// ControlsTab. Callers are responsible for pinning a fixed width on `sidebar` and `editor`.
+/// Builds the [sidebar | 1px separator | editor] horizontal chassis of ExceptionsTab.
+/// Callers are responsible for pinning a fixed width on `sidebar` and `editor`.
 /// Sidebar and editor heights are tied (`sidebar.height == editor.height`), and the content is
 /// pinned to all four edges of the returned `SidebarListContainer`.
 func makeSidebarEditorContainer(sidebar: NSView, editor: NSView, minHeight: CGFloat? = nil) -> SidebarListContainer {
@@ -21,7 +21,7 @@ func makeSidebarEditorContainer(sidebar: NSView, editor: NSView, minHeight: CGFl
     content.translatesAutoresizingMaskIntoConstraints = false
     sidebar.heightAnchor.constraint(equalTo: editor.heightAnchor).isActive = true
     let container = SidebarListContainer()
-    container.widthAnchor.constraint(equalToConstant: SettingsWindow.contentWidth).isActive = true
+    container.widthAnchor.constraint(equalToConstant: SettingsWindow.exceptionsColumnWidth).isActive = true
     if let minHeight {
         container.heightAnchor.constraint(greaterThanOrEqualToConstant: minHeight).isActive = true
     }

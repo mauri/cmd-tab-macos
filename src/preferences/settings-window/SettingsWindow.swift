@@ -1,9 +1,11 @@
 import Cocoa
 
-/// The settings window: one scrolling page with the switcher controls, the login and menubar options, and
-/// the exceptions list.
+/// The settings window: one scrolling page in two columns. The left column holds the switcher controls and
+/// the general options, and the right column holds the exceptions list.
 class SettingsWindow: NSWindow {
-    static let contentWidth = CGFloat(710)
+    static let settingsColumnWidth = CGFloat(440)
+    static let exceptionsColumnWidth = CGFloat(640)
+    private static let columnSpacing = CGFloat(30)
     private static let horizontalPadding = CGFloat(20)
     private static let topPadding = CGFloat(40)
     private static let bottomPadding = CGFloat(20)
@@ -16,7 +18,7 @@ class SettingsWindow: NSWindow {
     override var canBecomeKey: Bool { SecondaryWindows.canBecomeKey }
 
     convenience init() {
-        let windowWidth = Self.contentWidth + 2 * Self.horizontalPadding
+        let windowWidth = Self.settingsColumnWidth + Self.columnSpacing + Self.exceptionsColumnWidth + 2 * Self.horizontalPadding
         self.init(contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: Self.defaultWindowHeight),
                   styleMask: [.titled, .miniaturizable, .closable, .resizable, .fullSizeContentView],
                   backing: .buffered, defer: false)
@@ -32,19 +34,23 @@ class SettingsWindow: NSWindow {
         if !setFrameAutosaveNameSafely("SettingsWindow") {
             setContentSize(NSSize(width: windowWidth, height: Self.defaultWindowHeight))
             center()
+        } else if frame.width != windowWidth {
+            setContentSize(NSSize(width: windowWidth, height: contentRect(forFrameRect: frame).height))
         }
         Self.shared = self
     }
 
     private func makeContentView() -> NSView {
-        let stack = NSStackView()
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = Self.titleSpacing
+        let settingsColumn = makeColumn()
+        addSection(settingsColumn, NSLocalizedString("Controls", comment: ""), ControlsTab.initTab())
+        addSection(settingsColumn, NSLocalizedString("General", comment: ""), GeneralTab.initTab())
+        let exceptionsColumn = makeColumn()
+        addSection(exceptionsColumn, NSLocalizedString("Exceptions", comment: ""), ExceptionsTab.initTab())
+        let stack = NSStackView(views: [settingsColumn, exceptionsColumn])
+        stack.orientation = .horizontal
+        stack.alignment = .top
+        stack.spacing = Self.columnSpacing
         stack.translatesAutoresizingMaskIntoConstraints = false
-        addSection(stack, NSLocalizedString("Controls", comment: ""), ControlsTab.initTab())
-        addSection(stack, NSLocalizedString("General", comment: ""), GeneralTab.initTab())
-        addSection(stack, NSLocalizedString("Exceptions", comment: ""), ExceptionsTab.initTab())
         let documentView = FlippedView(frame: .zero)
         documentView.translatesAutoresizingMaskIntoConstraints = false
         documentView.addSubview(stack)
@@ -61,6 +67,15 @@ class SettingsWindow: NSWindow {
             documentView.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor),
         ])
         return scrollView
+    }
+
+    private func makeColumn() -> NSStackView {
+        let column = NSStackView()
+        column.orientation = .vertical
+        column.alignment = .leading
+        column.spacing = Self.titleSpacing
+        column.translatesAutoresizingMaskIntoConstraints = false
+        return column
     }
 
     private func addSection(_ stack: NSStackView, _ title: String, _ view: NSView) {
