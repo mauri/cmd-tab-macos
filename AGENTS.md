@@ -22,7 +22,6 @@ A wrong comment costs several times more than a missing one, for humans and agen
 - State each rule once, at the widest scope it applies to. Restating it further down is what makes two copies drift apart.
 - One intent per comment, and keep it short. Split a paragraph that mixes a rule, its history, and an aside.
 - When you change code, re-read the comments around it. Updating them is part of the change, not a follow-up.
-- Run `/rework-comments` to audit or rework comments across a file, a folder, or all of `src/`.
 
 # Workflow
 - Copy commands from ai/build.sh and run them, to confirm compilation works after you're done with implementing a change

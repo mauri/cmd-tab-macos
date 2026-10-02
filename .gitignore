@@ -15,8 +15,7 @@ codesign.conf
 codesign.crt
 codesign.key
 codesign.p12
-/.claude/*
-!/.claude/skills/
+/.claude/
 /config/local.xcconfig
 /scripts/l10n/missing-translations.json
 /ai/output/
